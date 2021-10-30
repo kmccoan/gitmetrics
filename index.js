@@ -109,7 +109,7 @@ function printDefinitions() {
     console.log(`Definitions`);
     console.log(`--------------------`);
     console.log(`Time to open:         Time from first commit to when PR is created. When a PR is rebased & forced pushed, this might be ? minutes`);
-    console.log(`Time to first review: Time from pr opening to the first comment`);
+    console.log(`Time to first review: Time from pr opening to the collaborator event (comment/review)`);
     console.log(`Time to merge:        Time from created to pr close`);
     console.log(`Cycle time:           Time from first commit || pr created to close`);
 }
