@@ -36,30 +36,19 @@ function printStatistics(pullRequests, onlyIncludeWorkingHours) {
     console.log(`------------------- Git Stats -------------------\n`);
     printDefinitions();
 
-    const allStats = {
-        timeToOpen: [],
-        timeToFirstReviews: [],
-        timeToMerge: [],
-        cycleTime: [],
-        numberOfCommits: [],
-        numberOfFiles: []
-    };
+    const prStats = {};
     pullRequests.forEach(pr => {
         const stats = extractPullRequestStats(pr, onlyIncludeWorkingHours);
-
-        if (stats.timeToOpen) {
-            allStats.timeToOpen.push(stats.timeToOpen);
-        }
-        allStats.timeToFirstReviews.push(stats.timeToFirstReviews);
-        allStats.timeToMerge.push(stats.timeToMerge);
-        allStats.cycleTime.push(stats.cycleTime);
-        allStats.numberOfCommits.push(stats.numberOfCommits);
-        allStats.numberOfFiles.push(stats.numberOfFiles);
-
-        printPullRequestStatistics(pr, stats);
+        prStats[pr.number] = stats;
     });
 
-    printOverallStatistics(allStats, pullRequests.length);
+    printOverallStatistics(prStats, pullRequests.length);
+    pullRequests
+    .sort((a, b) => prStats[b.number].cycleTime - prStats[a.number].cycleTime)
+    .forEach(pr => {
+        printPullRequestStatistics(pr, prStats[pr.number]);
+    });
+   
 }
 
 function extractPullRequestStats(pr, onlyIncludeWorkingHours) {
@@ -145,17 +134,35 @@ function printPullRequestStatistics(pr, stats) {
 }
 
 
-function printOverallStatistics(allStats, numberOfPrs) {
-    const { timeToOpen, timeToFirstReviews, timeToMerge, cycleTime, numberOfCommits, numberOfFiles } = allStats;
+function printOverallStatistics(prStats, numberOfPrs) {
+    const allPRStats = Object.values(prStats)
+    .reduce((all, curr) => {
+        if (curr.timeToOpen) {
+            all.timeToOpen.push(curr.timeToOpen)
+        }
+        all.timeToFirstReviews.push(curr.timeToFirstReviews)
+        all.timeToMerge.push(curr.timeToMerge)
+        all.cycleTime.push(curr.cycleTime)
+        all.numberOfCommits.push(curr.numberOfCommits)
+        all.numberOfFiles.push(curr.numberOfFiles)
+        return all;
+    }, {
+        timeToOpen: [],
+        timeToFirstReviews: [],
+        timeToMerge: [],
+        cycleTime: [],
+        numberOfCommits: [],
+        numberOfFiles: []
+    });
 
     console.log(`\nOverall stats for ${numberOfPrs} PRs:`);
     console.log('--------------------');
-    console.log(`Time to open:            ${formatTimeStats(timeToOpen)}`);
-    console.log(`Time to first review:    ${formatTimeStats(timeToFirstReviews)}`);
-    console.log(`Time to merge:           ${formatTimeStats(timeToMerge)}`);
-    console.log(`Cycle time:              ${formatTimeStats(cycleTime)}`);
-    console.log(`Number of commits:       ${formatNumberStats(numberOfCommits)}`);
-    console.log(`Number of files:         ${formatNumberStats(numberOfFiles)}`);
+    console.log(`Time to open:            ${formatTimeStats(allPRStats.timeToOpen)}`);
+    console.log(`Time to first review:    ${formatTimeStats(allPRStats.timeToFirstReviews)}`);
+    console.log(`Time to merge:           ${formatTimeStats(allPRStats.timeToMerge)}`);
+    console.log(`Cycle time:              ${formatTimeStats(allPRStats.cycleTime)}`);
+    console.log(`Number of commits:       ${formatNumberStats(allPRStats.numberOfCommits)}`);
+    console.log(`Number of files:         ${formatNumberStats(allPRStats.numberOfFiles)}`);
 
     function formatTimeStats(stats) {
         return `median: ${formatTimeStat(calculateMedian(stats))}, average: ${formatTimeStat(calculateAverage(stats))}`;
