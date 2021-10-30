@@ -33,7 +33,9 @@ async function main(onlyIncludeWorkingHours = false, numberOfPRs = "1") {
 }
 
 function printStatistics(pullRequests, onlyIncludeWorkingHours) {
-    console.log(`\n\n------------------- Git Stats -------------------\n`);
+    console.log(`------------------- Git Stats -------------------\n`);
+    printDefinitions();
+
     const allStats = {
         timeToOpen: [],
         timeToFirstReviews: [],
@@ -112,6 +114,15 @@ function extractPullRequestStats(pr, onlyIncludeWorkingHours) {
         numberOfCommits,
         numberOfFiles
     };
+}
+
+function printDefinitions() {
+    console.log(`Definitions`);
+    console.log(`--------------------`);
+    console.log(`Time to open:         Time from first commit to when PR is created. When a PR is rebased & forced pushed, this might be ? minutes`);
+    console.log(`Time to first review: Time from pr opening to the first comment`);
+    console.log(`Time to merge:        Time from created to pr close`);
+    console.log(`Cycle time:           Time from first commit || pr created to close`);
 }
 
 function printPullRequestStatistics(pr, stats) {
