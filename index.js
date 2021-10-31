@@ -205,16 +205,19 @@ function printOverallStatistics(prMetrics) {
     const latestPR = formatTimestamp(sortedByCreatedAt[sortedByCreatedAt.length - 1].created_at);
     const earliestPR = formatTimestamp(sortedByCreatedAt[0].created_at);
 
+    const unreviewed = prMetrics.filter(pr => pr.conversationDurations.length === 0).length;
+
     console.log(`\nOverall metrics for ${prMetrics.length} PRs spanning ${earliestPR} to ${latestPR}:`);
     console.log('--------------------');
-    console.log(`Time to open:            ${formatTimeMetrics(allPRMetrics.timeToOpen)}`);
-    console.log(`Time to first review:    ${formatTimeMetrics(allPRMetrics.timeToFirstReview)}`);
-    console.log(`Time to merge:           ${formatTimeMetrics(allPRMetrics.timeToMerge)}`);
-    console.log(`Cycle time:              ${formatTimeMetrics(allPRMetrics.cycleTime)}`);
-    console.log(`Number of commits:       ${formatNumberMetrics(allPRMetrics.numberOfCommits)}`);
-    console.log(`Number of files:         ${formatNumberMetrics(allPRMetrics.numberOfFiles)}`);
-    console.log(`Number of reviews:       ${formatNumberMetrics(allPRMetrics.numberOfFiles)}`);
-    console.log(`Conversation cadence:     ${formatTimeMetrics(allPRMetrics.conversationDurations.flat())}`);
+    console.log(`Time to open:               ${formatTimeMetrics(allPRMetrics.timeToOpen)}`);
+    console.log(`Time to first review:       ${formatTimeMetrics(allPRMetrics.timeToFirstReview)}`);
+    console.log(`Time to merge:              ${formatTimeMetrics(allPRMetrics.timeToMerge)}`);
+    console.log(`Cycle time:                 ${formatTimeMetrics(allPRMetrics.cycleTime)}`);
+    console.log(`Number of commits:          ${formatNumberMetrics(allPRMetrics.numberOfCommits)}`);
+    console.log(`Number of files:            ${formatNumberMetrics(allPRMetrics.numberOfFiles)}`);
+    console.log(`Number of reviews:          ${formatNumberMetrics(allPRMetrics.numberOfFiles)}`);
+    console.log(`Conversation cadence:       ${formatTimeMetrics(allPRMetrics.conversationDurations.flat())}`);
+    console.log(`Number of unreviewed PRs:   ${unreviewed}/${prMetrics.length}`);
 
 
     function formatTimeMetrics(metrics) {
