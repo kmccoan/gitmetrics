@@ -215,7 +215,7 @@ function printOverallStatistics(prMetrics) {
     console.log(`Cycle time:                 ${formatTimeMetrics(allPRMetrics.cycleTime)}`);
     console.log(`Number of commits:          ${formatNumberMetrics(allPRMetrics.numberOfCommits)}`);
     console.log(`Number of files:            ${formatNumberMetrics(allPRMetrics.numberOfFiles)}`);
-    console.log(`Number of reviews:          ${formatNumberMetrics(allPRMetrics.numberOfFiles)}`);
+    console.log(`Number of reviews:          ${formatNumberMetrics(allPRMetrics.numberOfReviews)}`);
     console.log(`Conversation cadence:       ${formatTimeMetrics(allPRMetrics.conversationDurations.flat())}`);
     console.log(`Number of unreviewed PRs:   ${unreviewed}/${prMetrics.length}`);
 
