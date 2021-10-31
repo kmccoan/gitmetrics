@@ -170,7 +170,8 @@ function printPullRequestStatistics(prMetrics) {
     console.log(`Time to merge:                 ${formatTimeStat(prMetrics.timeToMerge)}`);
     console.log(`Cycle time:                    ${formatTimeStat(prMetrics.cycleTime)}`);
     console.log(`Number of commits:             ${prMetrics.numberOfCommits}`);
-    console.log(`Number of files:               ${prMetrics.numberOfFiles} files, ${prMetrics.totalAdditions} additions, ${prMetrics.totalDeletions} deletions`);
+    console.log(`Number of files:               ${prMetrics.numberOfFiles}`);
+    console.log(`Lines changed:                 ${prMetrics.totalAdditions + prMetrics.totalDeletions}`);
     console.log(`Number of reviews:             ${prMetrics.numberOfReviews}`);
     console.log(`Conversation break duration:   median: ${formatTimeStat(calculateMedian(prMetrics.conversationBreakDurations))}, average ${formatTimeStat(calculateAverage(prMetrics.conversationBreakDurations))}`);
     console.log(`Conversation break durations:  ${prMetrics.conversationBreakDurations.map(duration => formatTimeStat(duration))}`);
@@ -190,6 +191,8 @@ function printOverallStatistics(prMetrics) {
             all.cycleTime.push(curr.cycleTime);
             all.numberOfCommits.push(curr.numberOfCommits);
             all.numberOfFiles.push(curr.numberOfFiles);
+            all.lineChanges.push(curr.totalAdditions);
+            all.lineChanges.push(curr.totalDeletions);
             all.numberOfReviews.push(curr.numberOfReviews);
             all.conversationBreakDurations.push(curr.conversationBreakDurations);
             all.conversationBreaks.push(curr.conversationBreaks);
@@ -201,6 +204,7 @@ function printOverallStatistics(prMetrics) {
             cycleTime: [],
             numberOfCommits: [],
             numberOfFiles: [],
+            lineChanges: [],
             numberOfReviews: [],
             conversationBreakDurations: [],
             conversationBreaks: []
@@ -220,6 +224,7 @@ function printOverallStatistics(prMetrics) {
     console.log(`Cycle time:                   ${formatTimeMetrics(allPRMetrics.cycleTime)}`);
     console.log(`Number of commits:            ${formatNumberMetrics(allPRMetrics.numberOfCommits)}`);
     console.log(`Number of files:              ${formatNumberMetrics(allPRMetrics.numberOfFiles)}`);
+    console.log(`Lines changed:                ${formatNumberMetrics(allPRMetrics.lineChanges)}`);
     console.log(`Number of reviews:            ${formatNumberMetrics(allPRMetrics.numberOfReviews)}`);
     console.log(`Conversation break duration:  ${formatTimeMetrics(allPRMetrics.conversationBreakDurations.flat())}`);
     console.log(`Conversation breaks:          ${formatNumberMetrics(allPRMetrics.conversationBreaks)}`);
