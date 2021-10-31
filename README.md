@@ -19,4 +19,7 @@ Install:
 
 Run examples:
 `node index.js`
-`node index.js -w true -p 100`
+`node index.js -w -p 100`
+
+Some considerations to take into account:
+Github api has no way of telling how long a PR is in Draft mode.

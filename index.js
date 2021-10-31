@@ -43,7 +43,8 @@ function printStatistics(pullRequests, onlyIncludeWorkingHours) {
     const prStats = pullRequests.map(pr => getPRWithCalculatedStats(pr, onlyIncludeWorkingHours));
 
     printOverallStatistics(prStats);
-    prStats
+
+    [...prStats]
         .sort((a, b) => b.cycleTime - a.cycleTime)
         .forEach(prStat => printPullRequestStatistics(prStat));
 }
@@ -98,7 +99,7 @@ function getPRWithCalculatedStats(pr, onlyIncludeWorkingHours) {
     const collaboratorEvents = events.filter(e => isCollaboratorEvent(e) && !e.isCommitEvent);
     const firstCollaboratorEvent = collaboratorEvents.length > 0 ? collaboratorEvents[0].time : null; //First collaborator event can be null when the PR is closed without being merged.
     const firstCommitEvent = events.filter(event => event.isCommitEvent)[0].time;
-    
+
     const timeToOpen = diffInMinutes(prCreatedAt, firstCommitEvent, onlyIncludeWorkingHours); //Time to be open can be null when commits are created after the PR is opened & force pushed.
     const timeToFirstReview = diffInMinutes(firstCollaboratorEvent, prCreatedAt, onlyIncludeWorkingHours);
     const timeToMerge = diffInMinutes(prMergedOrClosedAt, prCreatedAt, onlyIncludeWorkingHours);
@@ -174,7 +175,7 @@ function printPullRequestStatistics(prStats) {
 
 
 function printOverallStatistics(prStats) {
-    const allPRStats = Object.values(prStats)
+    const allPRStats = prStats
         .reduce((all, curr) => {
             all.timeToOpen.push(curr.timeToOpen)
             all.timeToFirstReview.push(curr.timeToFirstReview)
@@ -196,7 +197,11 @@ function printOverallStatistics(prStats) {
             conversationDurations: []
         });
 
-    console.log(`\nOverall stats for ${Object.keys(prStats).length} PRs:`);
+    const sortedByCreatedAt = [...prStats].sort((a, b) => momentSort(a.created_at, b.created_at))
+    const latestPR = formatTimestamp(sortedByCreatedAt[sortedByCreatedAt.length - 1].created_at);
+    const earliestPR = formatTimestamp(sortedByCreatedAt[0].created_at);
+
+    console.log(`\nOverall stats for ${prStats.length} PRs spanning ${earliestPR} to ${latestPR}:`);
     console.log('--------------------');
     console.log(`Time to open:            ${formatTimeStats(allPRStats.timeToOpen)}`);
     console.log(`Time to first review:    ${formatTimeStats(allPRStats.timeToFirstReview)}`);
@@ -261,6 +266,10 @@ function formatTimestamp(timestamp) {
 }
 
 function eventSort(a, b) {
-    return moment(a.time).toDate().getTime() - moment(b.time).toDate().getTime();
+    return momentSort(a.time, b.time);
+}
+
+function momentSort(a, b) {
+    return moment(a).toDate().getTime() - moment(b).toDate().getTime();
 }
 
