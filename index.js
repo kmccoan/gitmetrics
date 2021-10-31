@@ -108,7 +108,7 @@ function getPRWithCalculatedMetrics(pr) {
     const timeToFirstInteraction = diffInMinutes(firstCollaboratorEvent, prCreatedAt);
     const timeToMerge = diffInMinutes(prMergedAt, prCreatedAt);
     const cycleTime = timeToOpen == null ? timeToMerge : diffInMinutes(prMergedAt, firstCommitEvent);
-    const conversationDurations = calculateConversationDurations(events);
+    const conversationBreakDurations = calculateconversationBreakDurations(events);
 
     return {
         ...pr,
@@ -117,28 +117,29 @@ function getPRWithCalculatedMetrics(pr) {
         timeToMerge,
         cycleTime,
         events,
-        conversationDurations,
+        conversationBreakDurations,
+        conversationBreaks: conversationBreakDurations.length,
         numberOfCommits: pr.commits.length,
         numberOfFiles: pr.files.length,
         numberOfReviews: pr.reviews.length,
     };
 }
 
-function calculateConversationDurations(events) {
-    const conversationDurations = [];
+function calculateconversationBreakDurations(events) {
+    const conversationBreakDurations = [];
     let prevEvent = null;
     events.forEach(event => {
         if (prevEvent != null) {
             const collaboratorRespondingToAuthor = isAuthorEvent(prevEvent) && isCollaboratorEvent(event);
             const authorRespondingToCollaborator = isCollaboratorEvent(prevEvent) && isAuthorEvent(event);
             if (collaboratorRespondingToAuthor || authorRespondingToCollaborator) {
-                conversationDurations.push(diffInMinutes(event.time, prevEvent.time))
+                conversationBreakDurations.push(diffInMinutes(event.time, prevEvent.time))
             }
         }
 
         prevEvent = event;
     });
-    return conversationDurations;
+    return conversationBreakDurations;
 }
 
 function isAuthorEvent(event) {
@@ -153,11 +154,12 @@ function isCollaboratorEvent(event) {
 function printDefinitions() {
     console.log(`Definitions`);
     console.log(`--------------------`);
-    console.log(`Time to open:              Time from first commit to when PR is created. When a PR is rebased & forced pushed, this might be ? minutes`);
-    console.log(`Time to first interaction: Time from pr opening to the first collaborator interaction (comment/review)`);
-    console.log(`Time to merge:             Time from created to pr close`);
-    console.log(`Cycle time:                Time from first commit || pr created to close`);
-    console.log(`Conversation cadence:      Duration between author/collaborator interactions`);
+    console.log(`Time to open:                Time from first commit to when PR is created. When a PR is rebased & forced pushed, this might be ? minutes`);
+    console.log(`Time to first interaction:   Time from pr opening to the first collaborator interaction (comment/review)`);
+    console.log(`Time to merge:               Time from created to pr close`);
+    console.log(`Cycle time:                  Time from first commit || pr created to close`);
+    console.log(`Conversation break duration: Duration of break between author/collaborator interactions`);
+    console.log(`Conversation breaks:         Number of conversation breaks that happen in a PR - breaks are defined by a switch in speaker`);
 }
 
 function printPullRequestStatistics(prMetrics) {
@@ -170,8 +172,9 @@ function printPullRequestStatistics(prMetrics) {
     console.log(`Number of commits:             ${prMetrics.numberOfCommits}`);
     console.log(`Number of files:               ${prMetrics.numberOfFiles} files, ${prMetrics.totalAdditions} additions, ${prMetrics.totalDeletions} deletions`);
     console.log(`Number of reviews:             ${prMetrics.numberOfReviews}`);
-    console.log(`Conversation cadence:          median: ${formatTimeStat(calculateMedian(prMetrics.conversationDurations))}, average ${formatTimeStat(calculateAverage(prMetrics.conversationDurations))}`);
-    console.log(`Conversation cadences:         ${prMetrics.conversationDurations.map(duration => formatTimeStat(duration))}`);
+    console.log(`Conversation break duration:   median: ${formatTimeStat(calculateMedian(prMetrics.conversationBreakDurations))}, average ${formatTimeStat(calculateAverage(prMetrics.conversationBreakDurations))}`);
+    console.log(`Conversation break durations:  ${prMetrics.conversationBreakDurations.map(duration => formatTimeStat(duration))}`);
+    console.log(`Conversation breaks:           ${prMetrics.conversationBreaks}`);
 
     console.log('\nTimeline:');
     prMetrics.events.forEach(event => console.log(`${(formatTimestamp(event.time))}: ${event.message}`));
@@ -181,14 +184,15 @@ function printPullRequestStatistics(prMetrics) {
 function printOverallStatistics(prMetrics) {
     const allPRMetrics = prMetrics
         .reduce((all, curr) => {
-            all.timeToOpen.push(curr.timeToOpen)
-            all.timeToFirstInteraction.push(curr.timeToFirstInteraction)
-            all.timeToMerge.push(curr.timeToMerge)
-            all.cycleTime.push(curr.cycleTime)
-            all.numberOfCommits.push(curr.numberOfCommits)
-            all.numberOfFiles.push(curr.numberOfFiles)
-            all.numberOfReviews.push(curr.numberOfReviews)
-            all.conversationDurations.push(curr.conversationDurations)
+            all.timeToOpen.push(curr.timeToOpen);
+            all.timeToFirstInteraction.push(curr.timeToFirstInteraction);
+            all.timeToMerge.push(curr.timeToMerge);
+            all.cycleTime.push(curr.cycleTime);
+            all.numberOfCommits.push(curr.numberOfCommits);
+            all.numberOfFiles.push(curr.numberOfFiles);
+            all.numberOfReviews.push(curr.numberOfReviews);
+            all.conversationBreakDurations.push(curr.conversationBreakDurations);
+            all.conversationBreaks.push(curr.conversationBreaks);
             return all;
         }, {
             timeToOpen: [],
@@ -198,26 +202,28 @@ function printOverallStatistics(prMetrics) {
             numberOfCommits: [],
             numberOfFiles: [],
             numberOfReviews: [],
-            conversationDurations: []
+            conversationBreakDurations: [],
+            conversationBreaks: []
         });
 
     const sortedByCreatedAt = [...prMetrics].sort((a, b) => momentSort(a.created_at, b.created_at))
     const latestPR = formatTimestamp(sortedByCreatedAt[sortedByCreatedAt.length - 1].created_at);
     const earliestPR = formatTimestamp(sortedByCreatedAt[0].created_at);
 
-    const unreviewed = prMetrics.filter(pr => pr.conversationDurations.length === 0).length;
+    const unreviewed = prMetrics.filter(pr => pr.conversationBreakDurations.length === 0).length;
 
     console.log(`\nOverall metrics for ${prMetrics.length} PRs spanning ${earliestPR} to ${latestPR}:`);
     console.log('--------------------');
-    console.log(`Time to open:               ${formatTimeMetrics(allPRMetrics.timeToOpen)}`);
-    console.log(`Time to first interaction:  ${formatTimeMetrics(allPRMetrics.timeToFirstInteraction)}`);
-    console.log(`Time to merge:              ${formatTimeMetrics(allPRMetrics.timeToMerge)}`);
-    console.log(`Cycle time:                 ${formatTimeMetrics(allPRMetrics.cycleTime)}`);
-    console.log(`Number of commits:          ${formatNumberMetrics(allPRMetrics.numberOfCommits)}`);
-    console.log(`Number of files:            ${formatNumberMetrics(allPRMetrics.numberOfFiles)}`);
-    console.log(`Number of reviews:          ${formatNumberMetrics(allPRMetrics.numberOfReviews)}`);
-    console.log(`Conversation cadence:       ${formatTimeMetrics(allPRMetrics.conversationDurations.flat())}`);
-    console.log(`Number of unreviewed PRs:   ${unreviewed}/${prMetrics.length}`);
+    console.log(`Time to open:                 ${formatTimeMetrics(allPRMetrics.timeToOpen)}`);
+    console.log(`Time to first interaction:    ${formatTimeMetrics(allPRMetrics.timeToFirstInteraction)}`);
+    console.log(`Time to merge:                ${formatTimeMetrics(allPRMetrics.timeToMerge)}`);
+    console.log(`Cycle time:                   ${formatTimeMetrics(allPRMetrics.cycleTime)}`);
+    console.log(`Number of commits:            ${formatNumberMetrics(allPRMetrics.numberOfCommits)}`);
+    console.log(`Number of files:              ${formatNumberMetrics(allPRMetrics.numberOfFiles)}`);
+    console.log(`Number of reviews:            ${formatNumberMetrics(allPRMetrics.numberOfReviews)}`);
+    console.log(`Conversation break duration:  ${formatTimeMetrics(allPRMetrics.conversationBreakDurations.flat())}`);
+    console.log(`Conversation breaks:          ${formatNumberMetrics(allPRMetrics.conversationBreaks)}`);
+    console.log(`Number of unreviewed PRs:     ${unreviewed}/${prMetrics.length}`);
 
 
     function formatTimeMetrics(metrics) {
@@ -225,7 +231,7 @@ function printOverallStatistics(prMetrics) {
     }
 
     function formatNumberMetrics(metrics) {
-        return `median: ${calculateMedian(metrics)}, average: ${calculateAverage(metrics)}`
+        return `median: ${calculateMedian(metrics).toFixed(2)}, average: ${calculateAverage(metrics).toFixed(2)}`
     }
 }
 

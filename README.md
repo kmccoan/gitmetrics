@@ -7,7 +7,8 @@ This will report the following individual PR and aggregated metrics:
 * **Time to first interaction:** Time from pr opening to the first collaborator interaction (any comment or review)
 * **Time to merge:** Time from created to pr merge
 * **Cycle time:** Time from first commit || pr created to close
-* **Conversation cadence:** Duration between author/collaborator interactions
+* **Conversation break duration:** Duration of break between author/collaborator interactions
+* **Conversation breaks:*** Number of conversation breaks that happen in a PR - breaks are defined by a switch in speaker
 * **Number of PR commits**
 * **Number of PR files, additions, and deletions**
 * **Number of PR reviews**
