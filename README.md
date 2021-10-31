@@ -4,7 +4,7 @@
 This will report the following individual PR and aggregated metrics:
 
 * **Time to open:** Time from first commit to when PR is created
-* **Time to first review:** Time from pr opening to the first collaborator interaction (any comment or review)
+* **Time to first interaction:** Time from pr opening to the first collaborator interaction (any comment or review)
 * **Time to merge:** Time from created to pr merge
 * **Cycle time:** Time from first commit || pr created to close
 * **Conversation cadence:** Duration between author/collaborator interactions

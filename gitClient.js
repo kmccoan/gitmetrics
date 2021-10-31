@@ -17,8 +17,7 @@ module.exports = function () {
         let enrichedPulls = [];
         for (const pull of pulls) {
             if (cache.get(cacheKey(pull))) {
-                enrichedPulls.push(cache.get(cacheKey(pull)))
-                console.debug(`Retrieved from cache: PR-${pull.number}`);
+                enrichedPulls.push(cache.get(cacheKey(pull)));
             } else {
                 const pullNumber = pull.number;
 
