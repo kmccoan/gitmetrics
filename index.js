@@ -30,7 +30,11 @@ async function main(onlyIncludeWorkingHours = false, numberOfPRs = "1") {
     }
     try {
         const pullRequests = await gClient.getPullRequests(numberOfPRs);
-        printStatistics(pullRequests, onlyIncludeWorkingHours);
+        if (pullRequests.length > 0) {
+            printStatistics(pullRequests, onlyIncludeWorkingHours);
+        } else {
+            console.log("This repository has no closed PRs");
+        }
     } catch (error) {
         console.log(error);
     }
