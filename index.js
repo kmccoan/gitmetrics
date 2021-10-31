@@ -108,7 +108,7 @@ function getPRWithCalculatedMetrics(pr, onlyIncludeWorkingHours) {
     const timeToFirstReview = diffInMinutes(firstCollaboratorEvent, prCreatedAt, onlyIncludeWorkingHours);
     const timeToMerge = diffInMinutes(prMergedAt, prCreatedAt, onlyIncludeWorkingHours);
     const cycleTime = timeToOpen == null ? timeToMerge : diffInMinutes(prMergedAt, firstCommitEvent, onlyIncludeWorkingHours);
-    const conversationDurations = calculateConversationDurations(events);
+    const conversationDurations = calculateConversationDurations(events, onlyIncludeWorkingHours);
 
     return {
         ...pr,
@@ -124,7 +124,7 @@ function getPRWithCalculatedMetrics(pr, onlyIncludeWorkingHours) {
     };
 }
 
-function calculateConversationDurations(events) {
+function calculateConversationDurations(events, onlyIncludeWorkingHours) {
     const conversationDurations = [];
     let prevEvent = null;
     events.forEach(event => {
@@ -132,7 +132,7 @@ function calculateConversationDurations(events) {
             const collaboratorRespondingToAuthor = isAuthorEvent(prevEvent) && isCollaboratorEvent(event);
             const authorRespondingToCollaborator = isCollaboratorEvent(prevEvent) && isAuthorEvent(event);
             if (collaboratorRespondingToAuthor || authorRespondingToCollaborator) {
-                conversationDurations.push(diffInMinutes(event.time, prevEvent.time))
+                conversationDurations.push(diffInMinutes(event.time, prevEvent.time, onlyIncludeWorkingHours))
             }
         }
 
