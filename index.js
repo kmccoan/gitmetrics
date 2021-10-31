@@ -57,7 +57,7 @@ function getPRWithCalculatedStats(pr, onlyIncludeWorkingHours) {
     const events = [];
     const prInfo = `PR-${pr.number} (${pr.html_url})`;
     const prCreatedAt = pr.created_at;
-    const prMergedOrClosedAt = pr.merged_at || pr.closed_at;
+    const prMergedAt = pr.merged_at;
 
     events.push({
         time: prCreatedAt,
@@ -65,7 +65,7 @@ function getPRWithCalculatedStats(pr, onlyIncludeWorkingHours) {
         type: AUTHOR
     });
     events.push({
-        time: prMergedOrClosedAt,
+        time: prMergedAt,
         message: `${prInfo}: ${pr.merged_at ? 'merged' : 'closed - not merged'}`,
         type: NONE
     });
@@ -106,8 +106,8 @@ function getPRWithCalculatedStats(pr, onlyIncludeWorkingHours) {
 
     const timeToOpen = diffInMinutes(prCreatedAt, firstCommitEvent, onlyIncludeWorkingHours); //Time to be open can be null when commits are created after the PR is opened & force pushed.
     const timeToFirstReview = diffInMinutes(firstCollaboratorEvent, prCreatedAt, onlyIncludeWorkingHours);
-    const timeToMerge = diffInMinutes(prMergedOrClosedAt, prCreatedAt, onlyIncludeWorkingHours);
-    const cycleTime = timeToOpen == null ? timeToMerge : diffInMinutes(prMergedOrClosedAt, firstCommitEvent, onlyIncludeWorkingHours);
+    const timeToMerge = diffInMinutes(prMergedAt, prCreatedAt, onlyIncludeWorkingHours);
+    const cycleTime = timeToOpen == null ? timeToMerge : diffInMinutes(prMergedAt, firstCommitEvent, onlyIncludeWorkingHours);
     const conversationDurations = calculateConversationDurations(events);
 
     return {
@@ -214,7 +214,7 @@ function printOverallStatistics(prStats) {
     console.log(`Number of commits:       ${formatNumberStats(allPRStats.numberOfCommits)}`);
     console.log(`Number of files:         ${formatNumberStats(allPRStats.numberOfFiles)}`);
     console.log(`Number of reviews:       ${formatNumberStats(allPRStats.numberOfFiles)}`);
-    console.log(`Conversaton cadence:     ${formatTimeStats(allPRStats.conversationDurations.flat())}`);
+    console.log(`Conversation cadence:     ${formatTimeStats(allPRStats.conversationDurations.flat())}`);
 
 
     function formatTimeStats(stats) {

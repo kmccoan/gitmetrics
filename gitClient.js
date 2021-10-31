@@ -11,8 +11,8 @@ module.exports = function () {
     const owner = config.GITHUB_ORGANIZATION;
     const repo = config.GITHUB_REPO;
 
-    async function getPullRequests(numberOfPRs) {
-        const pulls = await getPRs(numberOfPRs);
+    async function getMergedPullRequests(numberOfPRs) {
+        const pulls = await getMergedPRs(numberOfPRs);
 
         let enrichedPulls = [];
         for (const pull of pulls) {
@@ -47,7 +47,7 @@ module.exports = function () {
 
 
     return {
-        getPullRequests
+        getPullRequests: getMergedPullRequests
     }
 
 
@@ -108,13 +108,14 @@ module.exports = function () {
         })).data;
     }
 
-    async function getPRs(numberOfPRs) {
+    async function getMergedPRs(numberOfPRs) {
         return (await octokit.rest.pulls.list({
             owner,
             repo,
             state: "close",
             per_page: numberOfPRs
-        })).data;
+        })).data
+        .filter(pr => !!pr.merged_at);
     }
 
     async function getPRFileInfo(pull_number) {
