@@ -1,7 +1,7 @@
 const { Octokit } = require("octokit");
 const cache = require('node-file-cache').create({
     file: "./gitCache.json", 
-    life: 86400 //Cache for 24 hours.
+    life: 604800 //Cache for 1 week.
 });
 const config = require("./config");
 
