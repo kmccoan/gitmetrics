@@ -41,19 +41,19 @@ async function main(onlyIncludeWorkingHours = false, numberOfPRs = "1") {
 }
 
 function printStatistics(pullRequests, onlyIncludeWorkingHours) {
-    console.log(`------------------- Git Stats -------------------\n`);
+    console.log(`------------------- Git Metrics -------------------\n`);
     printDefinitions();
 
-    const prStats = pullRequests.map(pr => getPRWithCalculatedStats(pr, onlyIncludeWorkingHours));
+    const prMetrics = pullRequests.map(pr => getPRWithCalculatedMetrics(pr, onlyIncludeWorkingHours));
 
-    printOverallStatistics(prStats);
+    printOverallStatistics(prMetrics);
 
-    [...prStats]
+    [...prMetrics]
         .sort((a, b) => b.cycleTime - a.cycleTime)
         .forEach(prStat => printPullRequestStatistics(prStat));
 }
 
-function getPRWithCalculatedStats(pr, onlyIncludeWorkingHours) {
+function getPRWithCalculatedMetrics(pr, onlyIncludeWorkingHours) {
     const events = [];
     const prInfo = `PR-${pr.number} (${pr.html_url})`;
     const prCreatedAt = pr.created_at;
@@ -160,26 +160,26 @@ function printDefinitions() {
     console.log(`Conversation cadence: Duration between author/collaborator interactions`);
 }
 
-function printPullRequestStatistics(prStats) {
-    console.log(`\nPR-${prStats.number}: ${prStats.title}`);
+function printPullRequestStatistics(prMetrics) {
+    console.log(`\nPR-${prMetrics.number}: ${prMetrics.title}`);
     console.log(`--------------------`);
-    console.log(`Time to open:         ${formatTimeStat(prStats.timeToOpen)}`);
-    console.log(`Time to first review: ${formatTimeStat(prStats.timeToFirstReview)}`);
-    console.log(`Time to merge:        ${formatTimeStat(prStats.timeToMerge)}`);
-    console.log(`Cycle time:           ${formatTimeStat(prStats.cycleTime)}`);
-    console.log(`Number of commits:    ${prStats.numberOfCommits}`);
-    console.log(`Number of files:      ${prStats.numberOfFiles} files, ${prStats.totalAdditions} additions, ${prStats.totalDeletions} deletions`);
-    console.log(`Number of reviews:    ${prStats.numberOfReviews}`);
-    console.log(`Conversation cadence:  median: ${formatTimeStat(calculateMedian(prStats.conversationDurations))}, average ${formatTimeStat(calculateAverage(prStats.conversationDurations))}`);
-    console.log(`Conversation cadences: ${prStats.conversationDurations.map(duration => formatTimeStat(duration))}`);
+    console.log(`Time to open:         ${formatTimeStat(prMetrics.timeToOpen)}`);
+    console.log(`Time to first review: ${formatTimeStat(prMetrics.timeToFirstReview)}`);
+    console.log(`Time to merge:        ${formatTimeStat(prMetrics.timeToMerge)}`);
+    console.log(`Cycle time:           ${formatTimeStat(prMetrics.cycleTime)}`);
+    console.log(`Number of commits:    ${prMetrics.numberOfCommits}`);
+    console.log(`Number of files:      ${prMetrics.numberOfFiles} files, ${prMetrics.totalAdditions} additions, ${prMetrics.totalDeletions} deletions`);
+    console.log(`Number of reviews:    ${prMetrics.numberOfReviews}`);
+    console.log(`Conversation cadence:  median: ${formatTimeStat(calculateMedian(prMetrics.conversationDurations))}, average ${formatTimeStat(calculateAverage(prMetrics.conversationDurations))}`);
+    console.log(`Conversation cadences: ${prMetrics.conversationDurations.map(duration => formatTimeStat(duration))}`);
 
     console.log('\nTimeline:');
-    prStats.events.forEach(event => console.log(`${(formatTimestamp(event.time))}: ${event.message}`));
+    prMetrics.events.forEach(event => console.log(`${(formatTimestamp(event.time))}: ${event.message}`));
 }
 
 
-function printOverallStatistics(prStats) {
-    const allPRStats = prStats
+function printOverallStatistics(prMetrics) {
+    const allPRMetrics = prMetrics
         .reduce((all, curr) => {
             all.timeToOpen.push(curr.timeToOpen)
             all.timeToFirstReview.push(curr.timeToFirstReview)
@@ -201,28 +201,28 @@ function printOverallStatistics(prStats) {
             conversationDurations: []
         });
 
-    const sortedByCreatedAt = [...prStats].sort((a, b) => momentSort(a.created_at, b.created_at))
+    const sortedByCreatedAt = [...prMetrics].sort((a, b) => momentSort(a.created_at, b.created_at))
     const latestPR = formatTimestamp(sortedByCreatedAt[sortedByCreatedAt.length - 1].created_at);
     const earliestPR = formatTimestamp(sortedByCreatedAt[0].created_at);
 
-    console.log(`\nOverall stats for ${prStats.length} PRs spanning ${earliestPR} to ${latestPR}:`);
+    console.log(`\nOverall metrics for ${prMetrics.length} PRs spanning ${earliestPR} to ${latestPR}:`);
     console.log('--------------------');
-    console.log(`Time to open:            ${formatTimeStats(allPRStats.timeToOpen)}`);
-    console.log(`Time to first review:    ${formatTimeStats(allPRStats.timeToFirstReview)}`);
-    console.log(`Time to merge:           ${formatTimeStats(allPRStats.timeToMerge)}`);
-    console.log(`Cycle time:              ${formatTimeStats(allPRStats.cycleTime)}`);
-    console.log(`Number of commits:       ${formatNumberStats(allPRStats.numberOfCommits)}`);
-    console.log(`Number of files:         ${formatNumberStats(allPRStats.numberOfFiles)}`);
-    console.log(`Number of reviews:       ${formatNumberStats(allPRStats.numberOfFiles)}`);
-    console.log(`Conversation cadence:     ${formatTimeStats(allPRStats.conversationDurations.flat())}`);
+    console.log(`Time to open:            ${formatTimeMetrics(allPRMetrics.timeToOpen)}`);
+    console.log(`Time to first review:    ${formatTimeMetrics(allPRMetrics.timeToFirstReview)}`);
+    console.log(`Time to merge:           ${formatTimeMetrics(allPRMetrics.timeToMerge)}`);
+    console.log(`Cycle time:              ${formatTimeMetrics(allPRMetrics.cycleTime)}`);
+    console.log(`Number of commits:       ${formatNumberMetrics(allPRMetrics.numberOfCommits)}`);
+    console.log(`Number of files:         ${formatNumberMetrics(allPRMetrics.numberOfFiles)}`);
+    console.log(`Number of reviews:       ${formatNumberMetrics(allPRMetrics.numberOfFiles)}`);
+    console.log(`Conversation cadence:     ${formatTimeMetrics(allPRMetrics.conversationDurations.flat())}`);
 
 
-    function formatTimeStats(stats) {
-        return `median: ${formatTimeStat(calculateMedian(stats))}, average: ${formatTimeStat(calculateAverage(stats))}`;
+    function formatTimeMetrics(metrics) {
+        return `median: ${formatTimeStat(calculateMedian(metrics))}, average: ${formatTimeStat(calculateAverage(metrics))}`;
     }
 
-    function formatNumberStats(stats) {
-        return `median: ${calculateMedian(stats)}, average: ${calculateAverage(stats)}`
+    function formatNumberMetrics(metrics) {
+        return `median: ${calculateMedian(metrics)}, average: ${calculateAverage(metrics)}`
     }
 }
 
