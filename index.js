@@ -19,6 +19,10 @@ moment.updateLocale('en', {
 
 main(args.w, args.p);
 
+const NONE = "none";
+const AUTHOR = "author";
+const COLLABORATOR = "collaborator";
+
 async function main(onlyIncludeWorkingHours = false, numberOfPRs = "1") {
     if (+numberOfPRs > 100) {
         console.log("Only supports 100 PRs atm");
@@ -44,66 +48,108 @@ function printStatistics(pullRequests, onlyIncludeWorkingHours) {
 
     printOverallStatistics(prStats, pullRequests.length);
     pullRequests
-    .sort((a, b) => prStats[b.number].cycleTime - prStats[a.number].cycleTime)
-    .forEach(pr => {
-        printPullRequestStatistics(pr, prStats[pr.number]);
-    });
-   
+        .sort((a, b) => prStats[b.number].cycleTime - prStats[a.number].cycleTime)
+        .forEach(pr => {
+            printPullRequestStatistics(pr, prStats[pr.number]);
+        });
+
 }
 
 function extractPullRequestStats(pr, onlyIncludeWorkingHours) {
-    const authorEvents = {};
-    const collaboratorEvents = {};
-    const commitEvents = {};
+    const events = [];
     const prInfo = `PR-${pr.number} (${pr.html_url})`;
     const prCreatedAt = pr.created_at;
     const prMergedOrClosedAt = pr.merged_at || pr.closed_at;
 
-    authorEvents[prCreatedAt] = `${prInfo}: created by ${pr.user.login}. ${pr.totalAdditions} additions, ${pr.totalDeletions} deletions`;
-    authorEvents[prMergedOrClosedAt] = `${prInfo}: ${pr.merged_at ? 'merged' : 'closed - not merged'}`;
+    events.push({
+        time: prCreatedAt,
+        message: `${prInfo}: created by ${pr.user.login}. ${pr.totalAdditions} additions, ${pr.totalDeletions} deletions`,
+        type: AUTHOR
+    });
+    events.push({
+        time: prMergedOrClosedAt,
+        message: `${prInfo}: ${pr.merged_at ? 'merged' : 'closed - not merged'}`,
+        type: NONE
+    });
+
+    function getEventType(user) {
+        return pr.user.id === user.id ? AUTHOR : COLLABORATOR;
+    }
 
     pr.comments.forEach(comment => {
-        const isPRAuthorComment = pr.user.login === comment.user.login;
-        if (isPRAuthorComment) {
-            authorEvents[comment.created_at] = `${prInfo}: ${comment.user.login} commented (${comment.html_url})`;
-        }
-        else {
-            collaboratorEvents[comment.created_at] = `${prInfo}: ${comment.user.login} commented (${comment.html_url})`;
-        }
+        events.push({
+            time: comment.created_at,
+            message: `${prInfo}: ${comment.user.login} commented (${comment.html_url})`,
+            type: getEventType(comment.user)
+        });
     });
 
     pr.reviews.forEach(review => {
-        collaboratorEvents[review.submitted_at] = `${prInfo}: ${review.user.login} ${review.state} (${review.html_url})`;
+        events.push({
+            time: review.submitted_at,
+            message: `${prInfo}: ${review.user.login} ${review.state} (${review.html_url})`,
+            type: getEventType(review.user)
+        });
     });
 
-    pr.commits.forEach(c => {
-        commitEvents[c.commit.author.date] = `${prInfo}: ${c.author ? c.author.login : 'no author'} committed (${c.html_url})`;
+    pr.commits.forEach(commit => {
+        events.push({
+            time: commit.commit.author.date,
+            message: `${prInfo}: ${commit.author ? commit.author.login : commit.commit.author.name} committed (${commit.html_url})`,
+            type: commit.author ? getEventType(commit.author) : AUTHOR, //Assume PR author is no commit author.
+            isCommitEvent: true,
+        })
     });
 
-    const firstCollaboratorEvent = Object.keys(collaboratorEvents).sort(momentSort)[0];
-    const firstCommitEvent = Object.keys(commitEvents).sort(momentSort)[0];
-
+    events.sort(eventSort);
+    const collaboratorEvents = events.filter(isCollaboratorEvent);
+    const firstCollaboratorEvent = collaboratorEvents.length > 0 ? collaboratorEvents[0].time : null; //First collaborator event can be null when the PR is closed without being merged.
+    const firstCommitEvent = events.filter(event => event.isCommitEvent)[0].time;
+    
     const timeToOpen = diffInMinutes(prCreatedAt, firstCommitEvent, onlyIncludeWorkingHours); //Time to be open can be null when commits are created after the PR is opened & force pushed.
     const timeToFirstReviews = diffInMinutes(firstCollaboratorEvent, prCreatedAt, onlyIncludeWorkingHours);
     const timeToMerge = diffInMinutes(prMergedOrClosedAt, prCreatedAt, onlyIncludeWorkingHours);
     const cycleTime = timeToOpen == null ? timeToMerge : diffInMinutes(prMergedOrClosedAt, firstCommitEvent, onlyIncludeWorkingHours);
-    const events = {
-        ...authorEvents,
-        ...collaboratorEvents,
-        ...commitEvents
-    };
-    const numberOfCommits = pr.commits.length;
-    const numberOfFiles = pr.files.length
+    const conversationDurations = calculateConversationDurations(events);
+
     return {
         timeToOpen,
         timeToFirstReviews,
         timeToMerge,
         cycleTime,
         events,
-        numberOfCommits,
-        numberOfFiles
+        conversationDurations,
+        numberOfCommits: pr.commits.length,
+        numberOfFiles: pr.files.length,
+        numberOfReviews: pr.reviews.length,
     };
 }
+
+function calculateConversationDurations(events) {
+    const conversationDurations = [];
+    let prevEvent = null;
+    events.forEach(event => {
+        if (prevEvent != null) {
+            const collaboratorRespondingToAuthor = isAuthorEvent(prevEvent) && isCollaboratorEvent(event);
+            const authorRespondingToCollaborator = isCollaboratorEvent(prevEvent) && isAuthorEvent(event);
+            if (collaboratorRespondingToAuthor || authorRespondingToCollaborator) {
+                conversationDurations.push(diffInMinutes(event.time, prevEvent.time))
+            }
+        }
+
+        prevEvent = event;
+    });
+    return conversationDurations;
+}
+
+function isAuthorEvent(event) {
+    return event.type === AUTHOR;
+}
+
+function isCollaboratorEvent(event) {
+    return event.type === COLLABORATOR;
+}
+
 
 function printDefinitions() {
     console.log(`Definitions`);
@@ -112,48 +158,49 @@ function printDefinitions() {
     console.log(`Time to first review: Time from pr opening to the collaborator event (comment/review)`);
     console.log(`Time to merge:        Time from created to pr close`);
     console.log(`Cycle time:           Time from first commit || pr created to close`);
+    console.log(`Conversation cadence: Duration between author/collaborator interactions`);
 }
 
 function printPullRequestStatistics(pr, stats) {
-    const { timeToOpen, timeToFirstReviews, timeToMerge, cycleTime, events, numberOfCommits, numberOfFiles } = stats;
     console.log(`\nPR-${pr.number}: ${pr.title}`);
     console.log(`--------------------`);
-    console.log(`Time to open:         ${formatTimeStat(timeToOpen)}`);
-    console.log(`Time to first review: ${formatTimeStat(timeToFirstReviews)}`);
-    console.log(`Time to merge:        ${formatTimeStat(timeToMerge)}`);
-    console.log(`Cycle time:           ${formatTimeStat(cycleTime)}`);
-    console.log(`Number of commits:    ${numberOfCommits}`);
-    console.log(`Number of files:      ${numberOfFiles} files, ${pr.totalAdditions} additions, ${pr.totalDeletions} deletions`);
+    console.log(`Time to open:         ${formatTimeStat(stats.timeToOpen)}`);
+    console.log(`Time to first review: ${formatTimeStat(stats.timeToFirstReviews)}`);
+    console.log(`Time to merge:        ${formatTimeStat(stats.timeToMerge)}`);
+    console.log(`Cycle time:           ${formatTimeStat(stats.cycleTime)}`);
+    console.log(`Number of commits:    ${stats.numberOfCommits}`);
+    console.log(`Number of files:      ${stats.numberOfFiles} files, ${pr.totalAdditions} additions, ${pr.totalDeletions} deletions`);
+    console.log(`Number of reviews:    ${stats.numberOfReviews}`);
+    console.log(`Conversation cadence:  median: ${formatTimeStat(calculateMedian(stats.conversationDurations))}, average ${formatTimeStat(calculateAverage(stats.conversationDurations))}`);
+    console.log(`Conversation cadences: ${stats.conversationDurations.map(duration => formatTimeStat(duration))}`);
 
     console.log('\nTimeline:');
-    const sortedEvents = Object.keys(events).sort(momentSort);
-    sortedEvents
-        .forEach(timestamp => {
-            console.log(`${(formatTimestamp(timestamp))}: ${events[timestamp]}`);
-        });
+    stats.events.forEach(event => console.log(`${(formatTimestamp(event.time))}: ${event.message}`));
 }
 
 
 function printOverallStatistics(prStats, numberOfPrs) {
     const allPRStats = Object.values(prStats)
-    .reduce((all, curr) => {
-        if (curr.timeToOpen) {
+        .reduce((all, curr) => {
             all.timeToOpen.push(curr.timeToOpen)
-        }
-        all.timeToFirstReviews.push(curr.timeToFirstReviews)
-        all.timeToMerge.push(curr.timeToMerge)
-        all.cycleTime.push(curr.cycleTime)
-        all.numberOfCommits.push(curr.numberOfCommits)
-        all.numberOfFiles.push(curr.numberOfFiles)
-        return all;
-    }, {
-        timeToOpen: [],
-        timeToFirstReviews: [],
-        timeToMerge: [],
-        cycleTime: [],
-        numberOfCommits: [],
-        numberOfFiles: []
-    });
+            all.timeToFirstReviews.push(curr.timeToFirstReviews)
+            all.timeToMerge.push(curr.timeToMerge)
+            all.cycleTime.push(curr.cycleTime)
+            all.numberOfCommits.push(curr.numberOfCommits)
+            all.numberOfFiles.push(curr.numberOfFiles)
+            all.numberOfReviews.push(curr.numberOfReviews)
+            all.conversationDurations.push(curr.conversationDurations)
+            return all;
+        }, {
+            timeToOpen: [],
+            timeToFirstReviews: [],
+            timeToMerge: [],
+            cycleTime: [],
+            numberOfCommits: [],
+            numberOfFiles: [],
+            numberOfReviews: [],
+            conversationDurations: []
+        });
 
     console.log(`\nOverall stats for ${numberOfPrs} PRs:`);
     console.log('--------------------');
@@ -163,6 +210,9 @@ function printOverallStatistics(prStats, numberOfPrs) {
     console.log(`Cycle time:              ${formatTimeStats(allPRStats.cycleTime)}`);
     console.log(`Number of commits:       ${formatNumberStats(allPRStats.numberOfCommits)}`);
     console.log(`Number of files:         ${formatNumberStats(allPRStats.numberOfFiles)}`);
+    console.log(`Number of reviews:       ${formatNumberStats(allPRStats.numberOfFiles)}`);
+    console.log(`Conversaton cadence:     ${formatTimeStats(allPRStats.conversationDurations.flat())}`);
+
 
     function formatTimeStats(stats) {
         return `median: ${formatTimeStat(calculateMedian(stats))}, average: ${formatTimeStat(calculateAverage(stats))}`;
@@ -174,18 +224,21 @@ function printOverallStatistics(prStats, numberOfPrs) {
 }
 
 function calculateMedian(numbers) {
-    const sortedNums = [...numbers].sort((a, b) => a - b);
+    const sortedNums = [...numbers].filter(n => !!n).sort((a, b) => a - b);
     const mid = Math.floor(sortedNums.length / 2)
     return numbers.length % 2 !== 0 ? sortedNums[mid] : (sortedNums[mid - 1] + sortedNums[mid]) / 2;
 }
 
 function calculateAverage(numbers) {
-    const total = numbers.reduce((sum, curr) => sum + curr, 0);
+    const total = numbers.filter(n => !!n).reduce((sum, curr) => sum + curr, 0);
     return total / numbers.length;
 }
 
 function diffInMinutes(laterDateTime, earlierDateTime, onlyIncludeWorkingHours) {
     const unit = "minutes";
+    if (laterDateTime == null || earlierDateTime == null) {
+        return null;
+    }
     const laterMoment = moment(laterDateTime);
     const earlierMoment = moment(earlierDateTime);
     if (laterMoment.isBefore(earlierMoment, unit)) {
@@ -213,8 +266,7 @@ function formatTimestamp(timestamp) {
     return moment(timestamp).format('ddd, MMM Do h:mma');
 }
 
-
-function momentSort(a, b) {
-    return moment(a).toDate().getTime() - moment(b).toDate().getTime();
+function eventSort(a, b) {
+    return moment(a.time).toDate().getTime() - moment(b.time).toDate().getTime();
 }
 
