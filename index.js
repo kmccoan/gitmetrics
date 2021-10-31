@@ -16,22 +16,22 @@ moment.updateLocale('en', {
         6: null
     }
 });
-
-main(args.w, args.p);
-
 const NONE = "none";
 const AUTHOR = "author";
 const COLLABORATOR = "collaborator";
+const ONLY_INCLUDE_WORKING_HOURS_ARG = args.w || false;
+const NUMBER_OF_PRS = args.p || "1";
+main();
 
-async function main(onlyIncludeWorkingHours = false, numberOfPRs = "1") {
-    if (+numberOfPRs > 100) {
+async function main() {
+    if (+NUMBER_OF_PRS > 100) {
         console.log("Only supports 100 PRs atm");
         return;
     }
     try {
-        const pullRequests = await gClient.getPullRequests(numberOfPRs);
+        const pullRequests = await gClient.getPullRequests(NUMBER_OF_PRS);
         if (pullRequests.length > 0) {
-            printStatistics(pullRequests, onlyIncludeWorkingHours);
+            printStatistics(pullRequests);
         } else {
             console.log("This repository has no closed PRs");
         }
@@ -40,11 +40,11 @@ async function main(onlyIncludeWorkingHours = false, numberOfPRs = "1") {
     }
 }
 
-function printStatistics(pullRequests, onlyIncludeWorkingHours) {
+function printStatistics(pullRequests) {
     console.log(`------------------- Git Metrics -------------------\n`);
     printDefinitions();
 
-    const prMetrics = pullRequests.map(pr => getPRWithCalculatedMetrics(pr, onlyIncludeWorkingHours));
+    const prMetrics = pullRequests.map(pr => getPRWithCalculatedMetrics(pr));
 
     printOverallStatistics(prMetrics);
 
@@ -53,7 +53,7 @@ function printStatistics(pullRequests, onlyIncludeWorkingHours) {
         .forEach(prStat => printPullRequestStatistics(prStat));
 }
 
-function getPRWithCalculatedMetrics(pr, onlyIncludeWorkingHours) {
+function getPRWithCalculatedMetrics(pr) {
     const events = [];
     const prInfo = `PR-${pr.number} (${pr.html_url})`;
     const prCreatedAt = pr.created_at;
@@ -104,11 +104,11 @@ function getPRWithCalculatedMetrics(pr, onlyIncludeWorkingHours) {
     const firstCollaboratorEvent = collaboratorEvents.length > 0 ? collaboratorEvents[0].time : null; //First collaborator event can be null when the PR is closed without being merged.
     const firstCommitEvent = events.filter(event => event.isCommitEvent)[0].time;
 
-    const timeToOpen = diffInMinutes(prCreatedAt, firstCommitEvent, onlyIncludeWorkingHours); //Time to be open can be null when commits are created after the PR is opened & force pushed.
-    const timeToFirstReview = diffInMinutes(firstCollaboratorEvent, prCreatedAt, onlyIncludeWorkingHours);
-    const timeToMerge = diffInMinutes(prMergedAt, prCreatedAt, onlyIncludeWorkingHours);
-    const cycleTime = timeToOpen == null ? timeToMerge : diffInMinutes(prMergedAt, firstCommitEvent, onlyIncludeWorkingHours);
-    const conversationDurations = calculateConversationDurations(events, onlyIncludeWorkingHours);
+    const timeToOpen = diffInMinutes(prCreatedAt, firstCommitEvent); //Time to be open can be null when commits are created after the PR is opened & force pushed.
+    const timeToFirstReview = diffInMinutes(firstCollaboratorEvent, prCreatedAt);
+    const timeToMerge = diffInMinutes(prMergedAt, prCreatedAt);
+    const cycleTime = timeToOpen == null ? timeToMerge : diffInMinutes(prMergedAt, firstCommitEvent);
+    const conversationDurations = calculateConversationDurations(events);
 
     return {
         ...pr,
@@ -124,7 +124,7 @@ function getPRWithCalculatedMetrics(pr, onlyIncludeWorkingHours) {
     };
 }
 
-function calculateConversationDurations(events, onlyIncludeWorkingHours) {
+function calculateConversationDurations(events) {
     const conversationDurations = [];
     let prevEvent = null;
     events.forEach(event => {
@@ -132,7 +132,7 @@ function calculateConversationDurations(events, onlyIncludeWorkingHours) {
             const collaboratorRespondingToAuthor = isAuthorEvent(prevEvent) && isCollaboratorEvent(event);
             const authorRespondingToCollaborator = isCollaboratorEvent(prevEvent) && isAuthorEvent(event);
             if (collaboratorRespondingToAuthor || authorRespondingToCollaborator) {
-                conversationDurations.push(diffInMinutes(event.time, prevEvent.time, onlyIncludeWorkingHours))
+                conversationDurations.push(diffInMinutes(event.time, prevEvent.time))
             }
         }
 
@@ -240,7 +240,7 @@ function calculateAverage(numbers) {
     return total / numbers.length;
 }
 
-function diffInMinutes(laterDateTime, earlierDateTime, onlyIncludeWorkingHours) {
+function diffInMinutes(laterDateTime, earlierDateTime) {
     const unit = "minutes";
     if (laterDateTime == null || earlierDateTime == null) {
         return null;
@@ -251,7 +251,7 @@ function diffInMinutes(laterDateTime, earlierDateTime, onlyIncludeWorkingHours) 
         return null;
     }
 
-    return onlyIncludeWorkingHours ? laterMoment.workingDiff(earlierMoment, unit, true) : laterMoment.diff(earlierMoment, unit, true);
+    return ONLY_INCLUDE_WORKING_HOURS_ARG ? laterMoment.workingDiff(earlierMoment, unit, true) : laterMoment.diff(earlierMoment, unit, true);
 }
 
 function formatTimeStat(timeInMinutes) {
