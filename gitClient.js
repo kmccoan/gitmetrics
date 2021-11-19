@@ -5,7 +5,6 @@ const cache = require('node-file-cache').create({
 });
 const config = require("./config");
 
-//TODO: cache PR details locally and only fetch ones missing details
 module.exports = function () {
     const octokit = new Octokit({ auth: config.GITHUB_TOKEN });
     const owner = config.GITHUB_ORGANIZATION;
