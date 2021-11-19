@@ -11,8 +11,8 @@ module.exports = function () {
     const owner = config.GITHUB_ORGANIZATION;
     const repo = config.GITHUB_REPO;
 
-    async function getMergedPullRequests(numberOfPRs) {
-        const pulls = await getMergedPRs(numberOfPRs);
+    async function getMergedPullRequests(numberOfPRs, team) {
+        const pulls = await getMergedPRs(numberOfPRs, team);
 
         let enrichedPulls = [];
         for (const pull of pulls) {
@@ -107,14 +107,35 @@ module.exports = function () {
         })).data;
     }
 
-    async function getMergedPRs(numberOfPRs) {
-        return (await octokit.rest.pulls.list({
+    async function getMergedPRs(numberOfPRs, team) {
+        const { data: pulls } = await octokit.rest.pulls.list({
             owner,
             repo,
             state: "close",
             per_page: numberOfPRs
-        })).data
-        .filter(pr => !!pr.merged_at);
+        });
+        const mergedPRs = pulls.filter(pr => !!pr.merged_at);
+        
+        if (team) {
+            const teamMembers = await listTeamMembers(team);
+            return mergedPRs.filter(pr => teamMembers.includes(pr.user.login));
+        }
+
+        return mergedPRs;
+    }
+    
+    async function listTeamMembers(team) {
+        try {
+            const members = await octokit.request('GET /orgs/{org}/teams/{team_slug}/members', {
+                org: owner,
+                team_slug: team
+            });
+            return members.data
+                .map(member => member.login);
+        } catch (e) {
+            console.log("Could not fetch team: " + e);
+            return [];
+        }
     }
 
     async function getPRFileInfo(pull_number) {

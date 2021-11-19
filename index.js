@@ -3,7 +3,7 @@ const gitClient = require('./gitClient');
 const minimist = require('minimist');
 
 const gClient = gitClient();
-const args = minimist(process.argv.slice(1));
+const args = minimist(process.argv.slice(2));
 
 moment.updateLocale('en', {
     workinghours: {
@@ -21,6 +21,7 @@ const AUTHOR = "author";
 const COLLABORATOR = "collaborator";
 const ONLY_INCLUDE_WORKING_HOURS_ARG = args.w || false;
 const NUMBER_OF_PRS = args.p || "1";
+const TEAM = args.t || undefined;
 main();
 
 async function main() {
@@ -29,7 +30,7 @@ async function main() {
         return;
     }
     try {
-        const pullRequests = await gClient.getPullRequests(NUMBER_OF_PRS);
+        const pullRequests = await gClient.getPullRequests(NUMBER_OF_PRS, TEAM);
         if (pullRequests.length > 0) {
             printStatistics(pullRequests);
         } else {

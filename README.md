@@ -35,6 +35,7 @@ module.exports = {
 Command line args
 * `-w`: Only include working hours
 * `-p ##`: Number of PRs to include (up to 100, default 1) 
+* `-t <team-name>`: Only include PRs for specified team (default is everyone)
 
 Install: `npm install`
 Run examples: 
