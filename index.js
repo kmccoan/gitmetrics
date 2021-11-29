@@ -21,26 +21,47 @@ const NONE = "none";
 const AUTHOR = "author";
 const COLLABORATOR = "collaborator";
 const ONLY_INCLUDE_WORKING_HOURS_ARG = args.w || false;
-const NUMBER_OF_PRS = args.p || "1";
+const NUMBER_OF_WEEKS = args.p || "1";
 const TEAM = args.t || undefined;
 main();
 
 async function main() {
-    if (+NUMBER_OF_PRS > 100) {
-        console.log("Only supports 100 PRs atm");
+    if (+NUMBER_OF_WEEKS < 0) {
         return;
     }
     try {
-        const pullRequests = await gClient.getPullRequests(NUMBER_OF_PRS, TEAM);
-        if (pullRequests.length > 0) {
-            const prMetrics = pullRequests.map(pr => getPRWithCalculatedMetrics(pr));
-            resultLogger.writeResults(prMetrics, TEAM, ONLY_INCLUDE_WORKING_HOURS_ARG);
-        } else {
-            console.log("This repository has no closed PRs");
-        }
+        const mergeCommitsForMaster = await gClient.getMergeCommitsForMaster(NUMBER_OF_WEEKS, TEAM);
+        const pullRequests = await gClient.getPullRequests(NUMBER_OF_WEEKS, TEAM);
+
+        const prMetrics = pullRequests.map(pr => getPRWithCalculatedMetrics(pr));
+        const mergeCommitsByDay = getNumberOfCommitsPerDay(mergeCommitsForMaster);
+
+        resultLogger.writeResults(prMetrics, mergeCommitsByDay, TEAM, ONLY_INCLUDE_WORKING_HOURS_ARG);
     } catch (error) {
         console.log(error);
     }
+}
+
+
+function getNumberOfCommitsPerDay(commits) {
+    return commits.reduce((commitsByDay, commit) => {
+        const commitDate = extractDateFromIso(commit.committedOn);
+        if (commitDate in commitsByDay) {
+            commitsByDay[commitDate]++
+          }
+          else {
+            commitsByDay[commitDate] = 1
+          }
+          return commitsByDay
+    }, {});
+}
+
+function extractDateFromIso(isoDateString) {
+    const date = new Date(isoDateString);
+    const year = date.getFullYear();
+    const month = date.getMonth()+1;
+    const dt = date.getDate();
+    return `${year}-${month}-${dt}`;
 }
 
 function getPRWithCalculatedMetrics(pr) {

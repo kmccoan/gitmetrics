@@ -2,11 +2,11 @@ const fs = require('fs');
 const moment = require('moment-business-time');
 
 
-function writeResults(prMetrics, team, onlyIncludeWorkingHours = false) {
+function writeResults(prMetrics, mergeCommitsPerDay, team, onlyIncludeWorkingHours = false) {
     const header = getHeader(team);
     const definitions = printDefinitions();
 
-    const overallMetricResults = getOverallStatisticsResults(prMetrics);
+    const overallMetricResults = getOverallStatisticsResults(prMetrics, mergeCommitsPerDay);
 
     const prMetricResults = [...prMetrics]
         .sort((a, b) => b.cycleTime - a.cycleTime)
@@ -61,7 +61,7 @@ function printPullRequestStatistics(prMetrics) {
 }
 
 
-function getOverallStatisticsResults(prMetrics) {
+function getOverallStatisticsResults(prMetrics, mergeCommitsPerDay) {
     const allPRMetrics = prMetrics
         .reduce((all, curr) => {
             all.timeToOpen.push(curr.timeToOpen);
@@ -89,14 +89,14 @@ function getOverallStatisticsResults(prMetrics) {
             conversationBreaks: []
         });
 
-    const sortedByCreatedAt = [...prMetrics].sort((a, b) => momentSort(a.created_at, b.created_at))
-    const latestPR = formatTimestamp(sortedByCreatedAt[sortedByCreatedAt.length - 1].created_at);
-    const earliestPR = formatTimestamp(sortedByCreatedAt[0].created_at);
+    const sortedByMergedAt = [...prMetrics].sort((a, b) => momentSort(a.merged_at, b.merged_at))
+    const latestMergedPR = formatTimestamp(sortedByMergedAt[sortedByMergedAt.length - 1].merged_at);
+    const earliestMergedPR = formatTimestamp(sortedByMergedAt[0].merged_at);
 
     const unreviewed = prMetrics.filter(pr => pr.conversationBreakDurations.length === 0).length;
 
     return [
-        `\nOverall metrics for ${prMetrics.length} PRs spanning ${earliestPR} to ${latestPR}:`,
+        `\nOverall metrics for ${prMetrics.length} PRs spanning PRs merged on ${earliestMergedPR} to ${latestMergedPR}:`,
         '--------------------',
         `Time to open:                 ${formatTimeMetrics(allPRMetrics.timeToOpen)}`,
         `Time to first interaction:    ${formatTimeMetrics(allPRMetrics.timeToFirstInteraction)}`,
@@ -108,7 +108,8 @@ function getOverallStatisticsResults(prMetrics) {
         `Number of reviews:            ${formatNumberMetrics(allPRMetrics.numberOfReviews)}`,
         `Conversation break duration:  ${formatTimeMetrics(allPRMetrics.conversationBreakDurations.flat())}`,
         `Conversation breaks:          ${formatNumberMetrics(allPRMetrics.conversationBreaks)}`,
-        `Number of unreviewed PRs:     ${unreviewed}/${prMetrics.length}`
+        `Number of unreviewed PRs:     ${unreviewed}/${prMetrics.length}`,
+        `Merged to master per day:     ${formatNumberMetrics(Object.values(mergeCommitsPerDay))}`
     ].join(`\n`);
 
     function formatTimeMetrics(metrics) {

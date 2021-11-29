@@ -34,13 +34,13 @@ module.exports = {
 
 Command line args
 * `-w`: Only include working hours
-* `-p ##`: Number of PRs to include (up to 100, default 1) 
+* `-p ##`: Number of weeks to include (Default is 4 weeks)
 * `-t <team-name>`: Only include PRs for specified team (default is everyone)
 
 Install: `npm install`
 Run examples: 
 `node index.js`
-`node index.js -w -p 100`
+`node index.js -w -p 8`
 
 # Considerations
 * Github api has no way of telling how long a PR is in Draft mode. Metrics will include draft time.

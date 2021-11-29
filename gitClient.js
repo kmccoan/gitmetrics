@@ -1,6 +1,6 @@
 const { Octokit } = require("octokit");
 const cache = require('node-file-cache').create({
-    file: "./gitCache.json", 
+    file: "./gitCache.json",
     life: 604800 //Cache for 1 week.
 });
 const config = require("./config");
@@ -10,17 +10,24 @@ module.exports = function () {
     const owner = config.GITHUB_ORGANIZATION;
     const repo = config.GITHUB_REPO;
 
-    async function getMergedPullRequests(numberOfPRs, team) {
-        const pulls = await getMergedPRs(numberOfPRs, team);
+    async function getMergeCommitsForMaster(numberOfWeeksToFetch, team) {
+        const commits = await listMergeCommits(numberOfWeeksToFetch, team);
+        
+        return commits
+            .map(commit => ({ ...commit.commit, committedOn: commit.commit.committer.date }));
+    }
+
+    async function getMergedPullRequests(numberOfWeeksToFetch, team) {
+        const pulls = await getMergedPRs(numberOfWeeksToFetch, team);
 
         let enrichedPulls = [];
         for (const pull of pulls) {
-            if (cache.get(cacheKey(pull))) {
-                enrichedPulls.push(cache.get(cacheKey(pull)));
+            if (cache.get(prCacheKey(pull))) {
+                enrichedPulls.push(cache.get(prCacheKey(pull)));
             } else {
                 const pullNumber = pull.number;
 
-                const commits = await listCommits(pullNumber);
+                const commits = await listPRCommits(pullNumber);
                 const fileInfo = await getPRFileInfo(pullNumber);
 
                 const pullComments = await listPRComments(pullNumber);
@@ -36,7 +43,7 @@ module.exports = function () {
                     ...fileInfo
                 };
                 enrichedPulls.push(enrichedPull)
-                cache.set(cacheKey(pull), enrichedPull);
+                cache.set(prCacheKey(pull), enrichedPull);
                 console.debug(`Retrieved from api: PR-${pull.number}`);
             }
         }
@@ -45,6 +52,7 @@ module.exports = function () {
 
 
     return {
+        getMergeCommitsForMaster: getMergeCommitsForMaster,
         getPullRequests: getMergedPullRequests
     }
 
@@ -98,39 +106,91 @@ module.exports = function () {
         })).data;
     }
 
-    async function listCommits(pull_number) {
+    async function listPRCommits(pull_number) {
         return (await octokit.rest.pulls.listCommits({
             owner,
             repo,
-            pull_number,
+            pull_number
         })).data;
     }
 
-    async function getMergedPRs(numberOfPRs, team) {
-        const { data: pulls } = await octokit.rest.pulls.list({
-            owner,
-            repo,
-            state: "close",
-            per_page: numberOfPRs
-        });
-        const mergedPRs = pulls.filter(pr => !!pr.merged_at);
-        
-        if (team) {
-            const teamMembers = await listTeamMembers(team);
-            return mergedPRs.filter(pr => teamMembers.includes(pr.user.login));
+    async function listMergeCommits(numberOfWeeksToFetch, team) {
+        const allMergeCommits = [];
+        const from = new Date();
+        from.setDate(from.getDate() - (numberOfWeeksToFetch * 7));
+        let index = 1;
+        while (true) {
+            const { data: commits } = (await octokit.rest.repos.listCommits({
+                owner,
+                repo,
+                per_page: 100,
+                page: index
+            }))
+
+            const mergeCommits = commits.filter(commit => commit.commit.message.includes("Merge pull request"));
+            const mergedCommitsInTimeframe = mergeCommits.filter(commit => new Date(commit.commit.committer.date) - from >= 0);
+            allMergeCommits.push(mergedCommitsInTimeframe);
+
+            if (mergeCommits.length !== mergedCommitsInTimeframe.length) {
+                break;
+            }
+            index++;
         }
 
-        return mergedPRs;
+        if (team) {
+            const teamMembers = await listTeamMembers(team);
+            return allMergeCommits.flat().filter(commit => teamMembers.includes(commit.author.login));
+        }
+
+        return allMergeCommits.flat();
     }
-    
+
+    async function getMergedPRs(numberOfWeeksToFetch, team) {
+        const allMergedPRs = [];
+        const from = new Date();
+        from.setDate(from.getDate() - (numberOfWeeksToFetch * 7));
+        let index = 1;
+        while (true) {
+            const { data: pulls } = await octokit.rest.pulls.list({
+                owner,
+                repo,
+                state: "close",
+                per_page: 100,
+                page: index,
+                sort: 'updated',
+                direction: 'desc'
+            });
+            const mergedPRs = pulls.filter(pr => !!pr.merged_at);
+            const mergedPRsWithinTimeframe = mergedPRs.filter(pull => new Date(pull.merged_at) - from >= 0);
+            allMergedPRs.push(mergedPRsWithinTimeframe);
+
+            if (mergedPRs.length !== mergedPRsWithinTimeframe.length) {
+                break;
+            }
+            index++;
+        }
+
+        if (team) {
+            const teamMembers = await listTeamMembers(team);
+            return allMergedPRs.flat().filter(pr => teamMembers.includes(pr.user.login));
+        }
+
+        return allMergedPRs.flat();
+    }
+
     async function listTeamMembers(team) {
+        const cachedTeam = cache.get(team);
+        if (cachedTeam) {
+            return cachedTeam;
+        }
         try {
             const members = await octokit.request('GET /orgs/{org}/teams/{team_slug}/members', {
                 org: owner,
                 team_slug: team
             });
-            return members.data
-                .map(member => member.login);
+            const teamMembers = members.data.map(member => member.login);
+            cache.set(team, teamMembers);
+            return teamMembers;
         } catch (e) {
             console.log("Could not fetch team: " + e);
             return [];
@@ -159,6 +219,6 @@ module.exports = function () {
     }
 };
 
-function cacheKey(pull) {
+function prCacheKey(pull) {
     return `${pull.number}`;
 }
