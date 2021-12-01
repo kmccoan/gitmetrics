@@ -3,4 +3,5 @@ node_modules/*
 .DS_Store
 gitCache.json
 *Metrics.txt
+*Metrics.csv
 *.code-workspace
