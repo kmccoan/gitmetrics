@@ -1,11 +1,11 @@
 const fs = require('fs');
 const loggerUtils = require('./loggerUtils');
 
-function writeResults(prMetrics, mergeCommitsPerDay, team, onlyIncludeWorkingHours = false) {
+function writeResults(prMetrics, mergeCommitsPerDay, team, onlyIncludeWorkingHours = false, filePrefix = '') {
     const prRows = getPRMetricRows(prMetrics);
     try {
         fs.writeFileSync(
-            getPRResultFileName(team, onlyIncludeWorkingHours),
+            getPRResultFileName(team, onlyIncludeWorkingHours, filePrefix),
             prRows
         )
     } catch (err) {
@@ -15,7 +15,7 @@ function writeResults(prMetrics, mergeCommitsPerDay, team, onlyIncludeWorkingHou
     const mergeRows = getMergesPerDayRows(mergeCommitsPerDay);
     try {
         fs.writeFileSync(
-            getMergesResultFileName(team, onlyIncludeWorkingHours),
+            getMergesResultFileName(team, onlyIncludeWorkingHours, filePrefix),
             mergeRows
         )
     } catch (err) {
@@ -59,10 +59,10 @@ function getMergesPerDayRows(mergesByDay) {
     return [header].concat(mergeCommitPerDayRows).join(`\n`);
 }
 
-function getPRResultFileName(team, onlyIncludeWorkingHours) {
-    return loggerUtils.getResultFileName(`results_pr`, `csv`, team, onlyIncludeWorkingHours);
+function getPRResultFileName(team, onlyIncludeWorkingHours, filePrefix) {
+    return loggerUtils.getResultFileName(`${filePrefix}_results_pr`, `csv`, team, onlyIncludeWorkingHours);
 }
 
-function getMergesResultFileName(team, onlyIncludeWorkingHours) {
-    return loggerUtils.getResultFileName(`results_merges_per_day`, `csv`, team, onlyIncludeWorkingHours);
+function getMergesResultFileName(team, onlyIncludeWorkingHours, filePrefix) {
+    return loggerUtils.getResultFileName(`${filePrefix}_results_merges_per_day`, `csv`, team, onlyIncludeWorkingHours);
 }

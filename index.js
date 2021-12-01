@@ -24,6 +24,7 @@ const COLLABORATOR = "collaborator";
 const ONLY_INCLUDE_WORKING_HOURS_ARG = args.w || false;
 const NUMBER_OF_WEEKS = args.p || "1";
 const TEAM = args.t || undefined;
+const FILE_PREFIX = args.f || undefined;
 main();
 
 async function main() {
@@ -37,8 +38,8 @@ async function main() {
         const prMetrics = pullRequests.map(pr => getPRWithCalculatedMetrics(pr));
         const mergeCommitsByDay = getNumberOfCommitsPerDay(mergeCommitsForMaster);
 
-        textResultLogger.writeResults(prMetrics, mergeCommitsByDay, TEAM, ONLY_INCLUDE_WORKING_HOURS_ARG);
-        csvResultLogger.writeResults(prMetrics, mergeCommitsByDay, TEAM, ONLY_INCLUDE_WORKING_HOURS_ARG);
+        textResultLogger.writeResults(prMetrics, mergeCommitsByDay, TEAM, ONLY_INCLUDE_WORKING_HOURS_ARG, FILE_PREFIX);
+        csvResultLogger.writeResults(prMetrics, mergeCommitsByDay, TEAM, ONLY_INCLUDE_WORKING_HOURS_ARG, FILE_PREFIX);
     } catch (error) {
         console.log(error);
     }

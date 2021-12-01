@@ -3,7 +3,7 @@ const moment = require('moment-business-time');
 const loggerUtils = require('./loggerUtils');
 
 
-function writeResults(prMetrics, mergeCommitsPerDay, team, onlyIncludeWorkingHours = false) {
+function writeResults(prMetrics, mergeCommitsPerDay, team, onlyIncludeWorkingHours = false, filePrefix = '') {
     const header = getHeader(team);
     const definitions = printDefinitions();
 
@@ -15,7 +15,7 @@ function writeResults(prMetrics, mergeCommitsPerDay, team, onlyIncludeWorkingHou
 
     try {
         fs.writeFileSync(
-            getResultFileName(team, onlyIncludeWorkingHours),
+            getResultFileName(team, onlyIncludeWorkingHours, filePrefix),
             [header, definitions, overallMetricResults, prMetricResults].join(`\n`)
         )
     } catch (err) {
@@ -155,8 +155,8 @@ function momentSort(a, b) {
     return moment(a).toDate().getTime() - moment(b).toDate().getTime();
 }
 
-function getResultFileName(team, onlyIncludeWorkingHours) {
-    return loggerUtils.getResultFileName(`results`, `txt`, team, onlyIncludeWorkingHours);
+function getResultFileName(team, onlyIncludeWorkingHours, filePrefix) {
+    return loggerUtils.getResultFileName(`${filePrefix}_results`, `txt`, team, onlyIncludeWorkingHours);
 }
 
 function getHeader(team) {
