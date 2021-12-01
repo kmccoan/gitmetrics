@@ -1,6 +1,6 @@
 const moment = require('moment-business-time');
 const gitClient = require('./gitClient');
-const resultLogger = require('./resultLogger');
+const textResultLogger = require('./textResultLogger');
 const minimist = require('minimist');
 
 const gClient = gitClient();
@@ -36,7 +36,7 @@ async function main() {
         const prMetrics = pullRequests.map(pr => getPRWithCalculatedMetrics(pr));
         const mergeCommitsByDay = getNumberOfCommitsPerDay(mergeCommitsForMaster);
 
-        resultLogger.writeResults(prMetrics, mergeCommitsByDay, TEAM, ONLY_INCLUDE_WORKING_HOURS_ARG);
+        textResultLogger.writeResults(prMetrics, mergeCommitsByDay, TEAM, ONLY_INCLUDE_WORKING_HOURS_ARG);
     } catch (error) {
         console.log(error);
     }
