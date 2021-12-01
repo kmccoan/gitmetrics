@@ -28,7 +28,8 @@ const FILE_PREFIX = args.f || undefined;
 main();
 
 async function main() {
-    if (+NUMBER_OF_WEEKS < 0) {
+    if (+NUMBER_OF_WEEKS <= 0) {
+        console.log("Number of weeks must be > 0");
         return;
     }
     try {
