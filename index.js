@@ -2,6 +2,7 @@ const moment = require('moment-business-time');
 const gitClient = require('./gitClient');
 const textResultLogger = require('./textResultLogger');
 const csvResultLogger = require('./csvResultLogger');
+const loggerUtils = require('./loggerUtils');
 const minimist = require('minimist');
 
 const gClient = gitClient();
@@ -49,7 +50,7 @@ async function main() {
 
 function getNumberOfCommitsPerDay(commits) {
     return commits.reduce((commitsByDay, commit) => {
-        const commitDate = extractDateFromIso(commit.committedOn);
+        const commitDate = loggerUtils.extractDateFromIso(commit.committedOn);
         if (commitDate in commitsByDay) {
             commitsByDay[commitDate]++
           }
@@ -58,14 +59,6 @@ function getNumberOfCommitsPerDay(commits) {
           }
           return commitsByDay
     }, {});
-}
-
-function extractDateFromIso(isoDateString) {
-    const date = new Date(isoDateString);
-    const year = date.getFullYear();
-    const month = date.getMonth()+1;
-    const dt = date.getDate();
-    return `${year}-${month}-${dt}`;
 }
 
 function getPRWithCalculatedMetrics(pr) {

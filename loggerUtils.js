@@ -11,4 +11,15 @@ function getResultFileName(prefix, fileExt, team, onlyIncludeWorkingHours) {
     return `${prefix}_${fileNameAndExt}`;
 }
 
-module.exports.getResultFileName = getResultFileName;
+function extractDateFromIso(isoDateString) {
+    const date = new Date(isoDateString);
+    const year = date.getFullYear();
+    const month = date.getMonth()+1;
+    const dt = date.getDate();
+    return `${year}-${month}-${dt}`;
+}
+
+module.exports = {
+    getResultFileName: getResultFileName,
+    extractDateFromIso: extractDateFromIso
+}

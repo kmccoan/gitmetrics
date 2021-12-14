@@ -32,7 +32,7 @@ function getPRMetricRows(prMetrics) {
     const prMetricRows = prMetrics
         .map(pr => [
             `PR-${pr.number}`,
-            pr.created_at,
+            loggerUtils.extractDateFromIso(pr.created_at),
             pr.timeToOpen,
             pr.timeToFirstInteraction,
             pr.timeToMerge,
