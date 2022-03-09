@@ -11,17 +11,6 @@ function writeResults(prMetrics, mergeCommitsPerDay, team, onlyIncludeWorkingHou
     } catch (err) {
         console.error(err)
     }
-    
-    const mergeRows = getMergesPerDayRows(mergeCommitsPerDay);
-    try {
-        fs.writeFileSync(
-            getMergesResultFileName(team, onlyIncludeWorkingHours, filePrefix),
-            mergeRows
-        )
-    } catch (err) {
-        console.error(err)
-    }
-
 }
 
 module.exports.writeResults = writeResults;
@@ -47,22 +36,6 @@ function getPRMetricRows(prMetrics) {
     return [header].concat(prMetricRows).join(`\n`);
 }
 
-
-function getMergesPerDayRows(mergesByDay) {
-    const header = "Date, Number of merges to master";
-    const mergeCommitPerDayRows = Object.keys(mergesByDay)
-        .map(day => [
-            day,
-            mergesByDay[day]
-        ].join(','));
-
-    return [header].concat(mergeCommitPerDayRows).join(`\n`);
-}
-
 function getPRResultFileName(team, onlyIncludeWorkingHours, filePrefix) {
-    return loggerUtils.getResultFileName(`${filePrefix}_results_pr`, `csv`, team, onlyIncludeWorkingHours);
-}
-
-function getMergesResultFileName(team, onlyIncludeWorkingHours, filePrefix) {
-    return loggerUtils.getResultFileName(`${filePrefix}_results_merges_per_day`, `csv`, team, onlyIncludeWorkingHours);
+    return loggerUtils.getResultFileName(`${filePrefix}${filePrefix ? `_` :``}cycle_time`, `csv`, team, onlyIncludeWorkingHours);
 }

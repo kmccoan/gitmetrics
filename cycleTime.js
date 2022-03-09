@@ -1,7 +1,7 @@
 const moment = require('moment-business-time');
 const gitClient = require('./gitClient');
-const textResultLogger = require('./textResultLogger');
-const csvResultLogger = require('./csvResultLogger');
+const textResultLogger = require('./cycleTimeTextLogger');
+const csvResultLogger = require('./cycleTimeCSVLogger');
 const loggerUtils = require('./loggerUtils');
 const minimist = require('minimist');
 
@@ -34,31 +34,15 @@ async function main() {
         return;
     }
     try {
-        const mergeCommitsForMaster = await gClient.getMergeCommitsForMaster(NUMBER_OF_WEEKS, TEAM);
         const pullRequests = await gClient.getPullRequests(NUMBER_OF_WEEKS, TEAM);
 
         const prMetrics = pullRequests.map(pr => getPRWithCalculatedMetrics(pr));
-        const mergeCommitsByDay = getNumberOfCommitsPerDay(mergeCommitsForMaster);
 
-        textResultLogger.writeResults(prMetrics, mergeCommitsByDay, TEAM, ONLY_INCLUDE_WORKING_HOURS_ARG, FILE_PREFIX);
-        csvResultLogger.writeResults(prMetrics, mergeCommitsByDay, TEAM, ONLY_INCLUDE_WORKING_HOURS_ARG, FILE_PREFIX);
+        textResultLogger.writeResults(prMetrics, TEAM, ONLY_INCLUDE_WORKING_HOURS_ARG, FILE_PREFIX);
+        csvResultLogger.writeResults(prMetrics, TEAM, ONLY_INCLUDE_WORKING_HOURS_ARG, FILE_PREFIX);
     } catch (error) {
         console.log(error);
     }
-}
-
-
-function getNumberOfCommitsPerDay(commits) {
-    return commits.reduce((commitsByDay, commit) => {
-        const commitDate = loggerUtils.extractDateFromIso(commit.committedOn);
-        if (commitDate in commitsByDay) {
-            commitsByDay[commitDate]++
-          }
-          else {
-            commitsByDay[commitDate] = 1
-          }
-          return commitsByDay
-    }, {});
 }
 
 function getPRWithCalculatedMetrics(pr) {

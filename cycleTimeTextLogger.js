@@ -3,11 +3,11 @@ const moment = require('moment-business-time');
 const loggerUtils = require('./loggerUtils');
 
 
-function writeResults(prMetrics, mergeCommitsPerDay, team, onlyIncludeWorkingHours = false, filePrefix = '') {
+function writeResults(prMetrics, team, onlyIncludeWorkingHours = false, filePrefix = '') {
     const header = getHeader(team);
     const definitions = printDefinitions();
 
-    const overallMetricResults = getOverallStatisticsResults(prMetrics, mergeCommitsPerDay);
+    const overallMetricResults = getOverallStatisticsResults(prMetrics);
 
     const prMetricResults = [...prMetrics]
         .sort((a, b) => b.cycleTime - a.cycleTime)
@@ -62,7 +62,7 @@ function printPullRequestStatistics(prMetrics) {
 }
 
 
-function getOverallStatisticsResults(prMetrics, mergeCommitsPerDay) {
+function getOverallStatisticsResults(prMetrics) {
     const allPRMetrics = prMetrics
         .reduce((all, curr) => {
             all.timeToOpen.push(curr.timeToOpen);
@@ -109,8 +109,7 @@ function getOverallStatisticsResults(prMetrics, mergeCommitsPerDay) {
         `Number of reviews:            ${formatNumberMetrics(allPRMetrics.numberOfReviews)}`,
         `Conversation break duration:  ${formatTimeMetrics(allPRMetrics.conversationBreakDurations.flat())}`,
         `Conversation breaks:          ${formatNumberMetrics(allPRMetrics.conversationBreaks)}`,
-        `Number of unreviewed PRs:     ${unreviewed}/${prMetrics.length}`,
-        `Merged to master per day:     ${formatNumberMetrics(Object.values(mergeCommitsPerDay))}`
+        `Number of unreviewed PRs:     ${unreviewed}/${prMetrics.length}`
     ].join(`\n`);
 
     function formatTimeMetrics(metrics) {
@@ -156,7 +155,7 @@ function momentSort(a, b) {
 }
 
 function getResultFileName(team, onlyIncludeWorkingHours, filePrefix) {
-    return loggerUtils.getResultFileName(`${filePrefix}_results`, `txt`, team, onlyIncludeWorkingHours);
+    return loggerUtils.getResultFileName(`${filePrefix}${filePrefix ? `_` :``}cycle_time`, `txt`, team, onlyIncludeWorkingHours);
 }
 
 function getHeader(team) {
