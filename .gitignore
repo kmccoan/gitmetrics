@@ -2,6 +2,6 @@ config.js
 node_modules/*
 .DS_Store
 gitCache.json
-*Metrics.txt
-*Metrics.csv
+results/*Metrics.txt
+results/*Metrics.csv
 *.code-workspace
