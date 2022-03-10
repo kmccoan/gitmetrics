@@ -1,15 +1,13 @@
-function getResultFileName(prefix, fileExt, team, onlyIncludeWorkingHours) {
+function getResultDir() {
+    return `${__dirname}/results/`;
+}
+
+function getTodayDateAsString() {
     const date_ob = new Date(Date.now());
     const date = date_ob.getDate();
     const month = date_ob.getMonth() + 1;
     const year = date_ob.getFullYear();
-
-    const fileNameAndExt = `${date}-${month}-${year}_${onlyIncludeWorkingHours ? `work_hours` : `all_hours`}_metrics.${fileExt}`;
-    const subDir = `${__dirname}/results/`;
-    if (team) {
-        return `${subDir}${prefix}_${team}_${fileNameAndExt}`;
-    }
-    return `${subDir}${prefix}_${fileNameAndExt}`;
+    return `${date}-${month}-${year}`;
 }
 
 function extractDateFromIso(isoDateString) {
@@ -21,6 +19,7 @@ function extractDateFromIso(isoDateString) {
 }
 
 module.exports = {
-    getResultFileName: getResultFileName,
+    getResultDir: getResultDir,
+    getTodayDateAsString: getTodayDateAsString,
     extractDateFromIso: extractDateFromIso
 }

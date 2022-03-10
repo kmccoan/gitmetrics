@@ -5,3 +5,4 @@ gitCache.json
 results/*Metrics.txt
 results/*Metrics.csv
 *.code-workspace
+sentryData.json/*

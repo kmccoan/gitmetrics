@@ -1,12 +1,12 @@
 const fs = require('fs');
 const loggerUtils = require('./loggerUtils');
 
-function writeResults(mergeCommitsPerDay, team, filePrefix = '') {
-    const mergeRows = getMergesPerDayRows(mergeCommitsPerDay);
+function writeResults(mergeCommitsPerDay, deploymentsByDay, team, filePrefix = '') {
+    const rows = getRows(mergeCommitsPerDay, deploymentsByDay);
     try {
         fs.writeFileSync(
-            getMergesResultFileName(team, filePrefix),
-            mergeRows
+            getDeployFreqFileName(team, filePrefix),
+            rows
         )
     } catch (err) {
         console.error(err)
@@ -17,17 +17,29 @@ function writeResults(mergeCommitsPerDay, team, filePrefix = '') {
 module.exports.writeResults = writeResults;
 
 
-function getMergesPerDayRows(mergesByDay) {
-    const header = "Date, Number of merges to master";
-    const mergeCommitPerDayRows = Object.keys(mergesByDay)
+function getRows(mergesByDay, deploymentsByDay) {
+    const header = "Date, Number of merges to master, Deployments";
+    const rows = getDateData(Object.keys(mergesByDay), Object.keys(deploymentsByDay))
         .map(day => [
             day,
-            mergesByDay[day]
+            mergesByDay[day],
+            deploymentsByDay[day]
         ].join(','));
 
-    return [header].concat(mergeCommitPerDayRows).join(`\n`);
+    return [header].concat(rows).join(`\n`);
 }
 
-function getMergesResultFileName(team, filePrefix) {
-    return loggerUtils.getResultFileName(`${filePrefix}${filePrefix ? `_` :``}deployment_frequency`, `csv`, team);
+function getDateData(daysWithMerges, daysWithDeploys) {
+    return daysWithMerges
+    .concat(daysWithDeploys)
+    .reduce((uniqueDays, day) => uniqueDays.find(d => d === day) ? uniqueDays : [...uniqueDays, day], []);
+}
+
+
+function getDeployFreqFileName(prefix) {
+    const todaysDate = loggerUtils.getTodayDateAsString();
+    const fileNameAndExt = `${todaysDate}_metrics.csv`;
+    const subDir = loggerUtils.getResultDir();
+    const filePrefix = `${prefix ? `${prefix}_deployment_freq` :`deployment_freq`}`;
+    return `${subDir}${filePrefix}_${fileNameAndExt}`;
 }

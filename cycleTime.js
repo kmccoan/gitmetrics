@@ -1,24 +1,12 @@
-const moment = require('moment-business-time');
+const momentUtils = require('./momentUtils')();
 const gitClient = require('./gitClient');
 const textResultLogger = require('./cycleTimeTextLogger');
 const csvResultLogger = require('./cycleTimeCSVLogger');
-const loggerUtils = require('./loggerUtils');
 const minimist = require('minimist');
 
 const gClient = gitClient();
 const args = minimist(process.argv.slice(2));
 
-moment.updateLocale('en', {
-    workinghours: {
-        0: null,
-        1: ['04:00:00', '19:00:00'],
-        2: ['04:00:00', '19:00:00'],
-        3: ['04:00:00', '19:00:00'],
-        4: ['04:00:00', '19:00:00'],
-        5: ['04:00:00', '19:00:00'],
-        6: null
-    }
-});
 const NONE = "none";
 const AUTHOR = "author";
 const COLLABORATOR = "collaborator";
@@ -143,24 +131,10 @@ function isCollaboratorEvent(event) {
 }
 
 function diffInMinutes(laterDateTime, earlierDateTime) {
-    const unit = "minutes";
-    if (laterDateTime == null || earlierDateTime == null) {
-        return null;
-    }
-    const laterMoment = moment(laterDateTime);
-    const earlierMoment = moment(earlierDateTime);
-    if (laterMoment.isBefore(earlierMoment, unit)) {
-        return null;
-    }
-
-    return ONLY_INCLUDE_WORKING_HOURS_ARG ? laterMoment.workingDiff(earlierMoment, unit, true) : laterMoment.diff(earlierMoment, unit, true);
+    return momentUtils.diffInMinutes(laterDateTime, earlierDateTime, ONLY_INCLUDE_WORKING_HOURS_ARG);
 }
 
 function eventSort(a, b) {
-    return momentSort(a.time, b.time);
-}
-
-function momentSort(a, b) {
-    return moment(a).toDate().getTime() - moment(b).toDate().getTime();
+    return momentUtils.momentSort(a.time, b.time);
 }
 

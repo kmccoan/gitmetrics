@@ -1,6 +1,6 @@
 const fs = require('fs');
 const moment = require('moment-business-time');
-const loggerUtils = require('./loggerUtils');
+const cycleTimeFileUtils = require('./cycleTimeFileUtils');
 
 
 function writeResults(prMetrics, team, onlyIncludeWorkingHours = false, filePrefix = '') {
@@ -155,7 +155,7 @@ function momentSort(a, b) {
 }
 
 function getResultFileName(team, onlyIncludeWorkingHours, filePrefix) {
-    return loggerUtils.getResultFileName(`${filePrefix}${filePrefix ? `_` :``}cycle_time`, `txt`, team, onlyIncludeWorkingHours);
+    return cycleTimeFileUtils.getResultFileName(filePrefix, `txt`, team, onlyIncludeWorkingHours);
 }
 
 function getHeader(team) {

@@ -1,7 +1,8 @@
 const fs = require('fs');
 const loggerUtils = require('./loggerUtils');
+const cycleTimeFileUtils = require('./cycleTimeFileUtils');
 
-function writeResults(prMetrics, mergeCommitsPerDay, team, onlyIncludeWorkingHours = false, filePrefix = '') {
+function writeResults(prMetrics, team, onlyIncludeWorkingHours = false, filePrefix = '') {
     const prRows = getPRMetricRows(prMetrics);
     try {
         fs.writeFileSync(
@@ -37,5 +38,5 @@ function getPRMetricRows(prMetrics) {
 }
 
 function getPRResultFileName(team, onlyIncludeWorkingHours, filePrefix) {
-    return loggerUtils.getResultFileName(`${filePrefix}${filePrefix ? `_` :``}cycle_time`, `csv`, team, onlyIncludeWorkingHours);
+    return cycleTimeFileUtils.getResultFileName(filePrefix, `csv`, team, onlyIncludeWorkingHours);
 }

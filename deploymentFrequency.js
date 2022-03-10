@@ -1,13 +1,14 @@
-const gitClient = require('./gitClient');
+const gClient = require('./gitClient');
 const csvResultLogger = require('./deploymentFrequencyCSVLogger');
 const loggerUtils = require('./loggerUtils');
 const minimist = require('minimist');
+const sClient = require('./sentryClient');
 
-const gClient = gitClient();
+const gitClient = gClient();
+const sentryClient = sClient();
 const args = minimist(process.argv.slice(2));
 
 const NUMBER_OF_WEEKS = args.p || "1";
-const TEAM = args.t || undefined;
 const FILE_PREFIX = args.f || undefined;
 main();
 
@@ -17,10 +18,12 @@ async function main() {
         return;
     }
     try {
-        const mergeCommitsForMaster = await gClient.getMergeCommitsForMaster(NUMBER_OF_WEEKS, TEAM);
+        const mergeCommitsForMaster = await gitClient.getMergeCommitsForMaster(NUMBER_OF_WEEKS);
         const mergeCommitsByDay = getNumberOfCommitsPerDay(mergeCommitsForMaster);
+        const deployments = await sentryClient.getDeployments();
+        const deploymentsByDay = getNumberOfDeploymentsPerDay(deployments);
 
-        csvResultLogger.writeResults(mergeCommitsByDay, TEAM, FILE_PREFIX);
+        csvResultLogger.writeResults(mergeCommitsByDay, deploymentsByDay, FILE_PREFIX);
     } catch (error) {
         console.log(error);
     }
@@ -28,14 +31,23 @@ async function main() {
 
 
 function getNumberOfCommitsPerDay(commits) {
-    return commits.reduce((commitsByDay, commit) => {
-        const commitDate = loggerUtils.extractDateFromIso(commit.committedOn);
-        if (commitDate in commitsByDay) {
-            commitsByDay[commitDate]++
+    return getPerDay(commits, (commit) => commit.committedOn);
+}
+
+
+function getNumberOfDeploymentsPerDay(deployments) {
+    return getPerDay(deployments, (deploy) => deploy.deployedAt);
+}
+
+function getPerDay(thingsWithDates, getDate) {
+    return thingsWithDates.reduce((thingPerDay, thing) => {
+        const thingsDate = loggerUtils.extractDateFromIso(getDate(thing));
+        if (thingsDate in thingPerDay) {
+            thingPerDay[thingsDate]++
           }
           else {
-            commitsByDay[commitDate] = 1
+            thingPerDay[thingsDate] = 1
           }
-          return commitsByDay
+          return thingPerDay
     }, {});
 }
