@@ -20,10 +20,10 @@ async function main() {
     try {
         const mergeCommitsForMaster = await gitClient.getMergeCommitsForMaster(NUMBER_OF_WEEKS);
         const mergeCommitsByDay = getNumberOfCommitsPerDay(mergeCommitsForMaster);
-        const deployments = await sentryClient.getDeployments();
-        const deploymentsByDay = getNumberOfDeploymentsPerDay(deployments);
+        // const deployments = await sentryClient.getDeployments();
+        // const deploymentsByDay = getNumberOfDeploymentsPerDay(deployments);
 
-        csvResultLogger.writeResults(mergeCommitsByDay, deploymentsByDay, FILE_PREFIX);
+        csvResultLogger.writeResults(mergeCommitsByDay, {}, FILE_PREFIX);
     } catch (error) {
         console.log(error);
     }
