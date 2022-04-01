@@ -1,8 +1,8 @@
 const gClient = require('./gitClient');
 const csvResultLogger = require('./deploymentFrequencyCSVLogger');
-const loggerUtils = require('./loggerUtils');
 const minimist = require('minimist');
 const sClient = require('./sentryClient');
+const momentUtils = require('./momentUtils')();
 
 const gitClient = gClient();
 const sentryClient = sClient();
@@ -41,7 +41,7 @@ function getNumberOfDeploymentsPerDay(deployments) {
 
 function getPerDay(thingsWithDates, getDate) {
     return thingsWithDates.reduce((thingPerDay, thing) => {
-        const thingsDate = loggerUtils.extractDateFromIso(getDate(thing));
+        const thingsDate = momentUtils.extractDateFromIso(getDate(thing));
         if (thingsDate in thingPerDay) {
             thingPerDay[thingsDate]++
           }

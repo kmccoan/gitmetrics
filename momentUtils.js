@@ -30,10 +30,44 @@ module.exports = function () {
     function momentSort(a, b) {
         return moment(a).toDate().getTime() - moment(b).toDate().getTime();
     }
+
+    function getDatesInRange(startDateString, endDateString) {
+        const start = moment(startDateString, "YYYY-MM-DD");
+        const end = moment(endDateString, "YYYY-MM-DD");;
+
+        if (end.isBefore(start)) {
+            return [];
+        }
+        
+        const dateObj = {};
+        let currentDate = start;
+        let stopDate = end;
+        while (currentDate <= stopDate) {
+          dateObj[`${formatInYearMonthDate(currentDate)}`] = 0;
+          currentDate = moment(currentDate).add(1, 'days');
+        }
     
+        return Object.keys(dateObj);
+    }
+    
+    function getTodayDateAsString() {
+        return formatInYearMonthDate(moment());
+        
+    }
+    
+    function extractDateFromIso(isoDateString) {
+        return formatInYearMonthDate(moment(isoDateString));
+    }
+
+    function formatInYearMonthDate(momentObj) {
+        return momentObj.format("YYYY-MM-DD");
+    }
 
     return {
         diffInMinutes: diffInMinutes,
-        momentSort: momentSort
+        momentSort: momentSort,
+        getTodayDateAsString: getTodayDateAsString,
+        extractDateFromIso: extractDateFromIso,
+        getDatesInRange: getDatesInRange
     }
 };

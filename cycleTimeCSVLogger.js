@@ -1,6 +1,6 @@
 const fs = require('fs');
-const loggerUtils = require('./loggerUtils');
 const cycleTimeFileUtils = require('./cycleTimeFileUtils');
+const momentUtils = require('./momentUtils')();
 
 function writeResults(prMetrics, team, onlyIncludeWorkingHours = false, filePrefix = '') {
     const prRows = getPRMetricRows(prMetrics);
@@ -22,7 +22,7 @@ function getPRMetricRows(prMetrics) {
     const prMetricRows = prMetrics
         .map(pr => [
             `PR-${pr.number}`,
-            loggerUtils.extractDateFromIso(pr.created_at),
+            momentUtils.extractDateFromIso(pr.created_at),
             pr.timeToOpen,
             pr.timeToFirstInteraction,
             pr.timeToMerge,
