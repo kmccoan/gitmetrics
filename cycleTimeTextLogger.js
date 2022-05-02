@@ -49,7 +49,7 @@ function printPullRequestStatistics(prMetrics) {
         `Cycle time:                    ${formatTimeStat(prMetrics.cycleTime)}`,
         `Number of commits:             ${prMetrics.numberOfCommits}`,
         `Number of files:               ${prMetrics.numberOfFiles}`,
-        `Lines changed:                 ${prMetrics.totalAdditions + prMetrics.totalDeletions}`,
+        `Lines changed:                 ${calculateLinesChanges(prMetrics)}`,
         `Number of reviews:             ${prMetrics.numberOfReviews}`,
         `Conversation break duration:   median: ${formatTimeStat(calculateMedian(prMetrics.conversationBreakDurations))}, average ${formatTimeStat(calculateAverage(prMetrics.conversationBreakDurations))}`,
         `Conversation break durations:  ${prMetrics.conversationBreakDurations.map(duration => formatTimeStat(duration))}`,
@@ -71,8 +71,7 @@ function getOverallStatisticsResults(prMetrics) {
             all.cycleTime.push(curr.cycleTime);
             all.numberOfCommits.push(curr.numberOfCommits);
             all.numberOfFiles.push(curr.numberOfFiles);
-            all.lineChanges.push(curr.totalAdditions);
-            all.lineChanges.push(curr.totalDeletions);
+            all.lineChanges.push(calculateLinesChanges(curr));
             all.numberOfReviews.push(curr.numberOfReviews);
             all.conversationBreakDurations.push(curr.conversationBreakDurations);
             all.conversationBreaks.push(curr.conversationBreaks);
@@ -119,6 +118,10 @@ function getOverallStatisticsResults(prMetrics) {
     function formatNumberMetrics(metrics) {
         return `median: ${calculateMedian(metrics).toFixed(2)}, average: ${calculateAverage(metrics).toFixed(2)}`
     }
+}
+
+function calculateLinesChanges(prMetrics) {
+    return prMetrics.totalAdditions + prMetrics.totalDeletions;
 }
 
 function formatTimeStat(timeInMinutes) {
