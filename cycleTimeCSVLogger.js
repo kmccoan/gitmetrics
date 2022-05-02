@@ -19,6 +19,7 @@ module.exports.writeResults = writeResults;
 
 function getPRMetricRows(prMetrics) {
     const header = "PR number, Created at, Time to open (minutes), Time to first interaction (minutes), Time to merge (minutes), Cycle time (minutes), Number of commits, Number of files, Total additions, Total deletions, Number of reviews";
+    prMetrics.sort((a, b) => { return parseInt(b.number) - parseInt(a.number)});
     const prMetricRows = prMetrics
         .map(pr => [
             `PR-${pr.number}`,
