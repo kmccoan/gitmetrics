@@ -4,5 +4,6 @@ node_modules/*
 gitCache.json
 results/*Metrics.txt
 results/*Metrics.csv
+results/archive/*
 *.code-workspace
 sentryData.json/*
