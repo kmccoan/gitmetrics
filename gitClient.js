@@ -47,7 +47,7 @@ module.exports = function () {
                 console.debug(`Retrieved from api: PR-${pull.number}`);
             }
         }
-        return enrichedPulls;
+        return enrichedPulls.filter(pull => pull.commits.length > 0); //Sometimes PRs can have no commits /shrug?
     }
 
 
