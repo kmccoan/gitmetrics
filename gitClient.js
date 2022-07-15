@@ -157,7 +157,7 @@ module.exports = function () {
                 state: "close",
                 per_page: 100,
                 page: index,
-                sort: 'updated',
+                sort: 'created',
                 direction: 'desc'
             });
             const mergedPRs = pulls.filter(pr => !!pr.merged_at);
