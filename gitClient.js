@@ -10,13 +10,6 @@ module.exports = function () {
     const owner = config.GITHUB_ORGANIZATION;
     const repo = config.GITHUB_REPO;
 
-    async function getMergeCommitsForMaster(numberOfWeeksToFetch, team) {
-        const commits = await listMergeCommits(numberOfWeeksToFetch, team);
-        
-        return commits
-            .map(commit => ({ ...commit.commit, committedOn: commit.commit.committer.date }));
-    }
-
     async function getMergedPullRequests(numberOfWeeksToFetch, team) {
         const pulls = await getMergedPRs(numberOfWeeksToFetch, team);
 
@@ -52,8 +45,7 @@ module.exports = function () {
 
 
     return {
-        getMergeCommitsForMaster: getMergeCommitsForMaster,
-        getPullRequests: getMergedPullRequests
+        getMergedPullRequests: getMergedPullRequests
     }
 
 
@@ -112,37 +104,6 @@ module.exports = function () {
             repo,
             pull_number
         })).data;
-    }
-
-    async function listMergeCommits(numberOfWeeksToFetch, team) {
-        const allMergeCommits = [];
-        const from = new Date();
-        from.setDate(from.getDate() - (numberOfWeeksToFetch * 7));
-        let index = 1;
-        while (true) {
-            const { data: commits } = (await octokit.rest.repos.listCommits({
-                owner,
-                repo,
-                per_page: 100,
-                page: index
-            }))
-
-            const mergeCommits = commits.filter(commit => commit.commit.message.includes("Merge pull request"));
-            const mergedCommitsInTimeframe = mergeCommits.filter(commit => new Date(commit.commit.committer.date) - from >= 0);
-            allMergeCommits.push(mergedCommitsInTimeframe);
-
-            if (mergeCommits.length !== mergedCommitsInTimeframe.length) {
-                break;
-            }
-            index++;
-        }
-
-        if (team) {
-            const teamMembers = await listTeamMembers(team);
-            return allMergeCommits.flat().filter(commit => teamMembers.includes(commit.author.login));
-        }
-
-        return allMergeCommits.flat();
     }
 
     async function getMergedPRs(numberOfWeeksToFetch, team) {

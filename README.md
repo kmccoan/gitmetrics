@@ -14,13 +14,20 @@ The cycleTime.js will report the following individual PR and aggregated metrics:
 * **Number of PR reviews**
 * **Number of unreviewed PRs**
 
-The deploymentFrequency.js will report the following:
+The mainlineMergeFrequency.js will report the following:
 
-* **Number of merges to master:** Number of merge commits to master per day
+* **Number of merges to master:** Number of merged pull requests to master per day
+
 
 # Setup
 
-If needed, create a personal access token at https://github.com/settings/tokens/new?scopes=repo
+If needed, create a personal access token at https://github.com/settings/tokens/new?scopes=repo. 
+Scopes needed:
+* Full repo
+* read:org
+* read:user
+* read:discussion
+* read:project
 
 Create a config.js file with the following format:
 
@@ -31,6 +38,26 @@ module.exports = {
 	GITHUB_REPO: "<repo-name>"
 }
 ```
+
+# Managing runtimes
+We use [`asdf`](https://asdf-vm.com/) to manage the Deno version. `asdf` is a CLI tool that can manage multiple language runtime versions on a per-project basis.
+
+Start by installing asdf:
+```sh
+brew install asdf
+echo -e "\n. $(brew --prefix asdf)/libexec/asdf.sh" >> ${ZDOTDIR:-~}/.zshrc
+```
+
+Then install the asdf-deno plugin:
+```sh
+asdf plugin-add deno https://github.com/asdf-community/asdf-deno.git
+```
+
+Finally, install the versions specified in [`.tool-versions`](/.tool-versions) with a single command:
+```sh
+asdf install
+```
+Now if you run `asdf current` you should see the installed Node versions.
 
 # Running cycleTime.js
 
@@ -53,14 +80,15 @@ Run examples:
 * Github reactions (aka emoji responses) are not included in calculations.
 
 
-# Running deploymentFrequency.js
+# Running mainlineMergeFrequency.js
 
 Command line args
 * `-p ##`: Number of weeks to include (Default is 1 weeks)
 * `-t <team-name>`: Only include PRs for specified team (default is everyone)
+* `-b <branch-name>`: mainline branch, defaults to "main"
 * `-f <file-prefix>`: Append a file prefix to results
 
 Install: `npm install`
 Run examples: 
-`node deploymentFrequency.js`
-`node deploymentFrequency.js -p 8`
+`node mainlineMergeFrequency.js`
+`node mainlineMergeFrequency.js -p 8`

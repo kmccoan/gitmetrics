@@ -22,7 +22,7 @@ async function main() {
         return;
     }
     try {
-        const pullRequests = await gClient.getPullRequests(NUMBER_OF_WEEKS, TEAM);
+        const pullRequests = await gClient.getMergedPullRequests(NUMBER_OF_WEEKS, TEAM);
 
         const prMetrics = pullRequests.map(pr => getPRWithCalculatedMetrics(pr));
 

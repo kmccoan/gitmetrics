@@ -2,8 +2,8 @@ const fs = require('fs');
 const loggerUtils = require('./loggerUtils');
 const momentUtils = require('./momentUtils')();
 
-function writeResults(mergeCommitsPerDay, deploymentsByDay, team, filePrefix = '') {
-    const rows = getRows(mergeCommitsPerDay, deploymentsByDay);
+function writeResults(mergedPRsPerDay, team, filePrefix = '') {
+    const rows = getRows(mergedPRsPerDay);
     try {
         fs.writeFileSync(
             getDeployFreqFileName(team, filePrefix),
@@ -18,21 +18,19 @@ function writeResults(mergeCommitsPerDay, deploymentsByDay, team, filePrefix = '
 module.exports.writeResults = writeResults;
 
 
-function getRows(mergesByDay, deploymentsByDay) {
-    const header = "Date, Number of merges to master, Deployments";
-    const rows = getDateData(Object.keys(mergesByDay), Object.keys(deploymentsByDay))
+function getRows(mergesByDay) {
+    const header = "Date, Number of merges to master";
+    const rows = getDateData(Object.keys(mergesByDay))
         .map(day => [
             day,
-            mergesByDay[day] || `0`,
-            deploymentsByDay[day] || `0`
+            mergesByDay[day] || `0`
         ].join(','));
 
     return [header].concat(rows).join(`\n`);
 }
 
-function getDateData(daysWithMerges, daysWithDeploys) {
+function getDateData(daysWithMerges) {
     const dates = daysWithMerges
-    .concat(daysWithDeploys)
     .reduce((uniqueDays, day) => uniqueDays.find(d => d === day) ? uniqueDays : [...uniqueDays, day], []);
     dates.sort((a, b) => momentUtils.momentSort(a, b));
     return momentUtils.getDatesInRange(dates[0], dates[dates.length - 1]);
