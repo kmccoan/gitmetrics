@@ -1,10 +1,12 @@
 const momentUtils = require('./momentUtils')();
 const gitClient = require('./gitClient');
+const bitbucketClient = require('./bitbucketClient');
 const textResultLogger = require('./cycleTimeTextLogger');
 const csvResultLogger = require('./cycleTimeCSVLogger');
 const minimist = require('minimist');
 
 const gClient = gitClient();
+const bClient = bitbucketClient();
 const args = minimist(process.argv.slice(2));
 
 const NONE = "none";
@@ -14,6 +16,7 @@ const ONLY_INCLUDE_WORKING_HOURS_ARG = args.w || false;
 const NUMBER_OF_WEEKS = args.p || "1";
 const TEAM = args.t || undefined;
 const FILE_PREFIX = args.f || undefined;
+const CLIENT = args.c || 'github';
 main();
 
 async function main() {
@@ -22,7 +25,14 @@ async function main() {
         return;
     }
     try {
-        const pullRequests = await gClient.getMergedPullRequests(NUMBER_OF_WEEKS, TEAM);
+        let pullRequests;
+        if (CLIENT === 'gh') {
+            pullRequests = await gClient.getMergedPullRequests(NUMBER_OF_WEEKS, TEAM);
+        } else if (CLIENT === 'bb') {
+            pullRequests = await bClient.getMergedPullRequests(NUMBER_OF_WEEKS);
+        } else {
+            throw new Error(`Invalid client. Use 'gh' or 'bb'. Got ${CLIENT}`);
+        }
 
         const prMetrics = pullRequests.map(pr => getPRWithCalculatedMetrics(pr));
 
@@ -34,6 +44,7 @@ async function main() {
 }
 
 function getPRWithCalculatedMetrics(pr) {
+    console.log(`calculating metrics for pr: ${pr.number}`);
     const events = [];
     const prInfo = `PR-${pr.number} (${pr.html_url})`;
     const prCreatedAt = pr.created_at;
@@ -54,6 +65,14 @@ function getPRWithCalculatedMetrics(pr) {
         return pr.user.id === user.id ? AUTHOR : COLLABORATOR;
     }
 
+    (pr.fromDraftToReadyEvents || []).forEach(fromDraftToReadyEvent => {
+        events.push({
+            time: fromDraftToReadyEvent.marked_ready_at,
+            message: `${prInfo}: ${fromDraftToReadyEvent.user.login} marked PR ready for review`,
+            type: getEventType(fromDraftToReadyEvent.user)
+        });
+    });
+
     pr.comments.forEach(comment => {
         events.push({
             time: comment.created_at,
@@ -71,12 +90,13 @@ function getPRWithCalculatedMetrics(pr) {
     });
 
     pr.commits.forEach(commit => {
-        events.push({
+        const commitEvent = {
             time: commit.commit.author.date,
             message: `${prInfo}: ${commit.author ? commit.author.login : commit.commit.author.name} committed (${commit.html_url})`,
             type: commit.author ? getEventType(commit.author) : AUTHOR, //Assume PR author is no commit author.
             isCommitEvent: true,
-        })
+        };
+        events.push(commitEvent);
     });
 
     events.sort(eventSort);

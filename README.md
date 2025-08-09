@@ -64,13 +64,14 @@ Now if you run `asdf current` you should see the installed Node versions.
 Command line args
 * `-w`: Only include working hours
 * `-p ##`: Number of weeks to include (Default is 1 weeks)
-* `-t <team-name>`: Only include PRs for specified team (default is everyone)
+* `-t <team-name>`: Only include PRs for specified team (default is everyone). Only works for github.
 * `-f <file-prefix>`: Append a file prefix to results
+* `-c <client>`: `gh` for github or `bb` for bitbucket
 
 Install: `npm install`
 Run examples: 
 `node cycleTime.js`
-`node cycleTime.js -w -p 8`
+`node cycleTime.js -w -p 8 -c bb`
 
 ## Considerations
 * Github api has no way of telling how long a PR is in Draft mode. Metrics will include draft time.
