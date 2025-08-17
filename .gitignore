@@ -2,6 +2,7 @@ config.js
 node_modules/*
 .DS_Store
 gitCache.json
+bitbucketCache.json
 results/*Metrics.txt
 results/*Metrics.csv
 results/archive/*
